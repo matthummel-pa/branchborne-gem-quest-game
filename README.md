@@ -32,6 +32,8 @@ Open [http://127.0.0.1:4173/](http://127.0.0.1:4173/). Pick a pathway, then swap
 
 **Save** in the cabinet chrome signs you in with email and password, or emails you a magic link. After a match, a trophy, a pause, or the end of a run, the cabinet writes pathway, quest, lines of code, moves, phase, best LOC, trophies, and loot to your Supabase account. A reload in another browser restores that row.
 
+![Save progress panel with email, password, sign in, create account, and email me a link](docs/images/save-panel.png)
+
 With no Supabase URL configured, the same record stays in this browser under a guest `localStorage` key and the board still runs. A signed-in account uses its own key and does not pick up the guest save. See [Support](docs/support.md#cloud-save) for the environment variables and [Security](docs/security.md) for what that does and does not protect.
 
 ## How a match works
