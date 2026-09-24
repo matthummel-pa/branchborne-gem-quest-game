@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Branchborne Gem Quest — Matt Hummel</title>
+  <meta name="description" content="Branchborne Gem Quest — Bejeweled-style match-3 with Gems of War flavor, WoW-like side quests, and a tech trophy case. Play to Senior / class Expert." />
+  <link rel="canonical" href="https://matthummel.com/git-blocks/" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="./git-blocks.css" />
+</head>
+<body>
+  <main class="page">
+    <p class="page-kicker">Mini player · matthummel.com</p>
+    <h1>Branchborne Gem Quest</h1>
+    <p class="page-lead">Match tech gems like Bejeweled, clear live side quests, collect trophies, and graduate Senior — then class Expert raids.</p>
+
+    <section class="player" data-git-blocks aria-label="Branchborne Gem Quest matching game">
+      <div class="player-chrome">
+        <div class="traffic" aria-hidden="true"><span></span><span></span><span></span></div>
+        <div class="player-title">Branchborne Gem Quest</div>
+        <div class="player-actions">
+          <button type="button" class="ghost" data-trophies>Trophies</button>
+          <button type="button" class="ghost" data-customize>Customize</button>
+          <button type="button" class="ghost" data-share>Share</button>
+          <button type="button" class="ghost" data-pause>Pause</button>
+          <button type="button" class="ghost" data-mute aria-pressed="false">Sound on</button>
+        </div>
+      </div>
+
+      <div class="player-screen">
+        <div class="board-column">
+          <div class="board-wrap">
+            <div class="dev-clouds pattern-drift" data-dev-clouds aria-hidden="true"></div>
+            <canvas data-board width="480" height="480" tabindex="0" role="application" aria-label="Branchborne gem board. Click a gem, then an adjacent gem to swap. Drag between neighbors also works."></canvas>
+            <div class="overlay is-clickable" data-overlay>
+              <div>
+                <p class="overlay-level" data-overlay-level hidden>Quest 1</p>
+                <h2 data-overlay-title>Choose your pathway</h2>
+                <p data-overlay-body>Pick a class. Match gems continuously — side quests and tips appear on the right as you play to Senior / Expert.</p>
+                <button type="button" data-play hidden>Start questing</button>
+              </div>
+            </div>
+          </div>
+          <aside class="quest-rail" data-quest-rail aria-label="Live side quests"></aside>
+        </div>
+        <aside class="side">
+          <div class="stats-row">
+            <div class="stat"><span>Lines of code</span><strong data-score>0</strong></div>
+            <div class="stat"><span>Cleared</span><strong data-lines>0</strong></div>
+            <div class="stat"><span>Quest</span><strong data-level>1</strong></div>
+            <div class="stat"><span>Best LOC</span><strong data-high>0</strong></div>
+          </div>
+          <div class="stats-row compact">
+            <div class="stat"><span>Moves</span><strong data-moves>48</strong></div>
+            <div class="stat"><span>Combo</span><strong data-combo>0</strong></div>
+            <div class="stat"><span>Goal</span><strong data-goal>0/600 LOC</strong></div>
+          </div>
+          <p class="sprint-name" data-sprint>Pick a pathway class</p>
+          <p class="rank-line" data-rank>Branchborne Gem Quest</p>
+          <p class="path-progress" data-path-progress>Path to Senior / class Expert</p>
+          <div class="goal-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Quest LOC goal">
+            <span data-progress></span>
+          </div>
+          <p class="message" data-message>Pick a pathway hero to begin.</p>
+          <div class="power-row">
+            <button type="button" class="ghost" data-hint>Hint (2)</button>
+            <button type="button" class="ghost" data-shuffle>Shuffle (2)</button>
+          </div>
+          <div class="skills-row" data-skills aria-label="Unlocked skills"></div>
+          <div class="gem-legend" data-gem-legend aria-label="Gem logos"></div>
+          <ul class="commit-log" data-commit-log aria-label="Match log"></ul>
+          <div class="badge-row" data-badges aria-label="Achievements"></div>
+          <div class="trophy-board" data-trophy-board hidden aria-label="Trophy and loot case"></div>
+          <div class="player-dock">
+            <span class="controls-label">Continuous match · side quests · trophies</span>
+            <p class="keys" data-keys-help>
+              Break gems · quests auto-level on the right · collect tech trophies
+            </p>
+          </div>
+        </aside>
+        <div class="customize-panel" data-customize-panel hidden>
+          <div class="customize-head">
+            <h3>Customize</h3>
+            <button type="button" class="ghost" data-customize-close aria-label="Close customize">Close</button>
+          </div>
+          <div class="customize-tabs" role="tablist">
+            <button type="button" class="is-active" data-tab="look" role="tab" aria-selected="true">Look</button>
+            <button type="button" data-tab="music" role="tab" aria-selected="false">Music</button>
+            <button type="button" data-tab="share" role="tab" aria-selected="false">Share</button>
+          </div>
+
+          <section class="customize-pane is-active" data-pane="look">
+            <p class="customize-hint">Pick a CSS backdrop, paste a gradient, or load a custom image URL.</p>
+            <div class="bg-presets" data-bg-presets></div>
+            <label class="field inline">
+              <span>Graphics</span>
+              <select data-graphics>
+                <option value="advanced">Advanced</option>
+                <option value="simple">Simple</option>
+              </select>
+            </label>
+            <label class="field">
+              <span>Custom CSS background</span>
+              <textarea data-bg-css rows="3" placeholder="linear-gradient(135deg, #0b1220, #0d2e57)"></textarea>
+            </label>
+            <label class="field">
+              <span>Custom image URL</span>
+              <input type="url" data-bg-image placeholder="https://…/wallpaper.jpg" />
+            </label>
+            <div class="row-actions">
+              <button type="button" data-bg-apply>Apply look</button>
+              <button type="button" class="ghost" data-bg-random>Random gradient</button>
+            </div>
+          </section>
+
+          <section class="customize-pane" data-pane="music" hidden>
+            <p class="customize-hint">Free / open-source loops (mostly generated in-browser). Shuffle discovers a fresh random set.</p>
+            <label class="field">
+              <span>Background music</span>
+              <select data-music-track></select>
+            </label>
+            <p class="music-credit" data-music-credit></p>
+            <label class="field">
+              <span>Custom audio URL (CC0 / CC-BY welcome)</span>
+              <input type="url" data-music-custom placeholder="https://…/track.mp3" />
+            </label>
+            <label class="field inline">
+              <span>Music volume</span>
+              <input type="range" data-music-volume min="0" max="100" value="35" />
+            </label>
+            <div class="row-actions wrap">
+              <button type="button" data-music-discover>Find free tracks</button>
+              <button type="button" class="ghost" data-music-preview>Preview</button>
+              <button type="button" data-music-apply>Play track</button>
+              <button type="button" class="ghost" data-music-stop>Stop</button>
+            </div>
+            <p class="customize-hint">Preview game SFX</p>
+            <div class="row-actions wrap sfx-row">
+              <button type="button" class="ghost" data-sfx-preview="move">Select</button>
+              <button type="button" class="ghost" data-sfx-preview="rotate">Swap</button>
+              <button type="button" class="ghost" data-sfx-preview="clear">Match</button>
+              <button type="button" class="ghost" data-sfx-preview="deploy">Cascade</button>
+              <button type="button" class="ghost" data-sfx-preview="start">Start</button>
+            </div>
+          </section>
+
+          <section class="customize-pane" data-pane="share" hidden>
+            <p class="customize-hint">Share the cabinet — optionally with your current look &amp; music baked into the link.</p>
+            <label class="field">
+              <span>Share link</span>
+              <input type="text" readonly data-share-url />
+            </label>
+            <label class="field checkbox">
+              <input type="checkbox" data-share-include-prefs checked />
+              <span>Include look + music in the link</span>
+            </label>
+            <div class="row-actions wrap">
+              <button type="button" data-share-copy>Copy link</button>
+              <button type="button" class="ghost" data-share-native>System share</button>
+              <a class="button-link ghost" data-share-x target="_blank" rel="noopener">Share on X</a>
+              <a class="button-link ghost" data-share-linkedin target="_blank" rel="noopener">LinkedIn</a>
+            </div>
+            <p class="share-status" data-share-status aria-live="polite"></p>
+          </section>
+
+          <div class="customize-foot">
+            <button type="button" data-customize-close>Done</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <p class="page-note">GitHub READMEs cannot run JavaScript, so this cabinet lives here. Best LOC stays in this browser.</p>
+    <p class="links">
+      <a href="https://github.com/matthummel-pa">GitHub</a>
+      <a href="https://matthummel.com">matthummel.com</a>
+      <a href="https://acreline.matthummel.com">Acreline demo</a>
+      <a href="https://walkridge.matthummel.com">WalkRidge demo</a>
+    </p>
+    <div class="sr-only" data-live aria-live="polite"></div>
+  </main>
+  <script src="./git-blocks.js"></script>
+</body>
+</html>
