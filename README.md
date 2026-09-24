@@ -6,6 +6,8 @@ The playable cabinet is this repository: open `index.html` and the board is the 
 
 ![Key art of a cloaked archer facing an ornate cabinet of glowing web-technology gems](docs/images/hero-key-art.png)
 
+Key art, not a screenshot of the cabinet.
+
 ## The cabinet
 
 ![Pathway select with Classic learning path, Frontend Mage, Backend Sentinel, WordPress Artisan, and Full-Stack Ranger](docs/images/pathway-select.png)
@@ -25,6 +27,12 @@ python3 -m http.server 4173
 ```
 
 Open [http://127.0.0.1:4173/](http://127.0.0.1:4173/). Pick a pathway, then swap adjacent gems.
+
+## Save across browsers
+
+**Save** in the cabinet chrome signs you in with email and password, or emails you a magic link. After a match, a trophy, a pause, or the end of a run, the cabinet writes pathway, quest, lines of code, moves, phase, best LOC, trophies, and loot to your Supabase account. A reload in another browser restores that row.
+
+With no Supabase URL configured, the same record stays in this browser under a guest `localStorage` key and the board still runs. A signed-in account uses its own key and does not pick up the guest save. See [Support](docs/support.md#cloud-save) for the environment variables and [Security](docs/security.md) for what that does and does not protect.
 
 ## How a match works
 
@@ -48,6 +56,7 @@ Gem marks are stylized teaching icons.
 
 - [Player guide](docs/game-guide.md) — powers, scoring, quests, trophies, controls
 - [Development](docs/development.md) — layout, where the rules live, Node sanity check
-- [Support](docs/support.md) — browsers, sound, reset, a board that will not start
+- [Support](docs/support.md) — browsers, sound, cloud save, reset, a board that will not start
+- [Security](docs/security.md) — what is protected, what a player can still edit, how to report a problem
 - [Contributing](CONTRIBUTING.md)
 - [Changelog](CHANGELOG.md)

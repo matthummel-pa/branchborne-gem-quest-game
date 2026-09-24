@@ -17,6 +17,8 @@ Open [http://127.0.0.1:4173/](http://127.0.0.1:4173/) and walk the screen you to
 The cabinet is vanilla HTML, CSS, and one IIFE. Keep it that way: no bundler and no new package step for a content or rules change.
 
 - Player-facing rules, lessons, pathways, trophies, and scoring live in `git-blocks.js`. See [Development](docs/development.md) for the constants and a Node require you can run after an engine edit.
+- After a save-shape change, run `node scripts/verify-progress.js`.
+- After a security-sensitive change, run `node scripts/security-check.js`.
 - The shell in `index.html` and the theme in `git-blocks.css` should stay in step with the selectors the script expects (`data-git-blocks`, `data-board`, `data-hint`, and the rest).
 
 ## Docs

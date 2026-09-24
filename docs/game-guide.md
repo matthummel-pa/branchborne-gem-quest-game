@@ -154,19 +154,25 @@ Finishing the last lesson of your pathway graduates you to Senior and opens raid
 | `P` | Pause or resume |
 | `Enter` | Continue when the run is waiting |
 | `R` | Rebase after a raid ends |
-| `Escape` | Close the trophy case or Customize |
+| `Escape` | Close the trophy case, Customize, or Save |
 
 Move gems with the pointer. The arrow keys leave the selection where it is.
 
-## What this browser remembers
+## What progress is saved
 
-The quest, skills, trophies, and loot for the current run stay in the page. A reload starts you back at pathway select.
+**Save** opens sign-in. Use an email and password, or **Email me a link**. When you are signed in, the cabinet syncs after a resolved match, a new trophy or loot drop, a pause, and when a run ends. Starting a quest syncs as well, so the pathway is not lost before the first match.
 
-Two values stay in `localStorage` for this site:
+The saved record is pathway, quest (level and title), lines of code, moves, phase (`path` or `endgame`), best LOC, trophies, loot, and the skills unlocked so far. A playing run is restored as paused so the board can be resumed.
+
+The same record is written to this browser. Guest play and a signed-in account do not share a key:
 
 | Key | What it stores |
 | --- | --- |
-| `git-blocks-high-score` | Best LOC, saved when a run reaches the end screen |
-| `git-blocks-prefs-v2` | Look, music, volume, and graphics |
+| `git-blocks-progress-v1:guest` | Pathway, quest, LOC, moves, phase, trophies, loot, skills while signed out |
+| `git-blocks-progress-v1:u:<user id>` | That same record for the signed-in account |
+| `git-blocks-high-score:guest` | Best LOC on this browser |
+| `git-blocks-prefs-v2:guest` | Look, music, volume, and graphics |
 
-A shared link can also reapply Look and Music from its `#gb=` hash. See [Support](support.md) to clear any of that.
+If cloud save is off, play continues from the guest key. Signing in loads that account's cloud row and does not import the guest save. Best LOC is kept per scope.
+
+A shared link can also reapply Look and Music from its `#gb=` hash. See [Support](support.md) to clear local data or fix a sign-in that never returns.

@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Branchborne Gem Quest — Matt Hummel</title>
   <meta name="description" content="Branchborne Gem Quest — Bejeweled-style match-3 with Gems of War flavor, WoW-like side quests, and a tech trophy case. Play to Senior / class Expert." />
+  <meta name="referrer" content="strict-origin-when-cross-origin" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com https://*.supabase.co" />
   <link rel="canonical" href="https://matthummel.com/git-blocks/" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -23,6 +25,7 @@
         <div class="player-title">Branchborne Gem Quest</div>
         <div class="player-actions">
           <button type="button" class="ghost" data-trophies>Trophies</button>
+          <button type="button" class="ghost" data-account>Save</button>
           <button type="button" class="ghost" data-customize>Customize</button>
           <button type="button" class="ghost" data-share>Share</button>
           <button type="button" class="ghost" data-pause>Pause</button>
@@ -160,8 +163,8 @@
             <div class="row-actions wrap">
               <button type="button" data-share-copy>Copy link</button>
               <button type="button" class="ghost" data-share-native>System share</button>
-              <a class="button-link ghost" data-share-x target="_blank" rel="noopener">Share on X</a>
-              <a class="button-link ghost" data-share-linkedin target="_blank" rel="noopener">LinkedIn</a>
+              <a class="button-link ghost" data-share-x target="_blank" rel="noopener noreferrer">Share on X</a>
+              <a class="button-link ghost" data-share-linkedin target="_blank" rel="noopener noreferrer">LinkedIn</a>
             </div>
             <p class="share-status" data-share-status aria-live="polite"></p>
           </section>
@@ -170,10 +173,37 @@
             <button type="button" data-customize-close>Done</button>
           </div>
         </div>
+        <div class="customize-panel account-panel" data-account-panel hidden>
+          <div class="customize-head">
+            <h3>Save progress</h3>
+            <button type="button" class="ghost" data-account-close aria-label="Close save">Close</button>
+          </div>
+          <p class="customize-hint" data-account-status>Checking cloud save…</p>
+          <form data-account-form method="post" action="#account" hidden>
+            <label class="field">
+              <span>Email</span>
+              <input type="email" data-account-email autocomplete="email" required placeholder="you@example.com" />
+            </label>
+            <label class="field">
+              <span>Password</span>
+              <input type="password" data-account-password autocomplete="current-password" minlength="8" maxlength="72" placeholder="At least 8 characters" />
+            </label>
+            <div class="row-actions wrap">
+              <button type="submit" data-account-signin>Sign in</button>
+              <button type="button" class="ghost" data-account-signup>Create account</button>
+              <button type="button" class="ghost" data-account-magic>Email me a link</button>
+            </div>
+          </form>
+          <p class="customize-hint" data-account-user hidden></p>
+          <div class="row-actions wrap">
+            <button type="button" class="ghost" data-account-signout hidden>Sign out</button>
+            <button type="button" data-account-close>Done</button>
+          </div>
+        </div>
       </div>
     </section>
 
-    <p class="page-note">GitHub READMEs cannot run JavaScript, so this cabinet lives here. Best LOC stays in this browser.</p>
+    <p class="page-note">GitHub READMEs cannot run JavaScript, so this cabinet lives here. Sign in with Save to keep trophies and quest status across browsers. Without cloud save, progress stays in this browser.</p>
     <p class="links">
       <a href="https://github.com/matthummel-pa">GitHub</a>
       <a href="https://matthummel.com">matthummel.com</a>
@@ -182,6 +212,8 @@
     </p>
     <div class="sr-only" data-live aria-live="polite"></div>
   </main>
+  <script src="./security.js"></script>
   <script src="./git-blocks.js"></script>
+  <script src="./cloud-sync.js"></script>
 </body>
 </html>

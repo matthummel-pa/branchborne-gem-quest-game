@@ -13,6 +13,60 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function () {
   "use strict";
 
+  function securityApi() {
+    return typeof globalThis !== "undefined" ? globalThis.BranchborneSecurity : null;
+  }
+
+  function escapeHtml(value) {
+    const api = securityApi();
+    if (api && api.escapeHtml) return api.escapeHtml(value);
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function safeRecordId(value) {
+    const api = securityApi();
+    if (api && api.safeRecordId) return api.safeRecordId(value);
+    const text = String(value || "");
+    return /^[a-z0-9][a-z0-9_-]{0,63}$/.test(text) ? text : "";
+  }
+
+  function plainLabel(value, max) {
+    const api = securityApi();
+    if (api && api.plainLabel) return api.plainLabel(value, max);
+    return String(value == null ? "" : value)
+      .replace(/[\u0000-\u001F\u007F<>]/g, "")
+      .trim()
+      .slice(0, max == null ? 80 : max);
+  }
+
+  function safeHex(value, fallback) {
+    const api = securityApi();
+    if (api && api.safeHex) return api.safeHex(value, fallback);
+    return /^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(value || "") ? value : fallback;
+  }
+
+  function safeToken(value, allowed, fallback) {
+    return allowed.indexOf(value) >= 0 ? value : fallback;
+  }
+
+  function isPlayerUuid(value) {
+    const api = securityApi();
+    if (api && api.isUuid) return api.isUuid(value);
+    return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+  }
+
+  function playerStorageKey(base, userId) {
+    const api = securityApi();
+    if (api && api.storageKey) return api.storageKey(base, userId);
+    if (isPlayerUuid(userId)) return `${base}:u:${String(userId).toLowerCase()}`;
+    return `${base}:guest`;
+  }
+
   const SIZE = 8;
   const COLS = SIZE;
   const ROWS = SIZE;
@@ -480,11 +534,11 @@
    */
   function cartoonCharacterMarkup(silhouette, colors, idle) {
     const c = colors || ["#4f8fd4", "#0d2e57", "#9ec8ef"];
-    const primary = c[0];
-    const secondary = c[1] || c[0];
-    const accent = c[2] || "#fff6c8";
-    const kind = silhouette || "ranger";
-    const motion = idle || "float";
+    const primary = safeHex(c[0], "#4f8fd4");
+    const secondary = safeHex(c[1] || c[0], "#0d2e57");
+    const accent = safeHex(c[2] || "#fff6c8", "#fff6c8");
+    const kind = safeToken(silhouette, ["mage", "sentinel", "artisan", "ranger", "classic"], "ranger");
+    const motion = safeToken(idle, ["float", "pulse", "bob", "stride"], "float");
 
     const faces = {
       mage: `
@@ -1042,6 +1096,199 @@
     return Math.round(base * chainBonus * (1 + (level - 1) * 0.08) * affinityBonus);
   }
 
+  const SAVE_STATUSES = ["class-select", "ready", "playing", "paused", "over"];
+
+  function clampSaveInt(value, min, fallback, max) {
+    const n = Number(value);
+    if (!Number.isFinite(n)) return fallback;
+    const floored = Math.max(min, Math.floor(n));
+    return max == null ? floored : Math.min(max, floored);
+  }
+
+  function normalizeSaveEntry(id, entry) {
+    const safeId = safeRecordId(id);
+    if (!safeId) return null;
+    const source = entry && typeof entry === "object" ? entry : {};
+    const name = plainLabel(source.name || safeId, 80) || safeId;
+    const atSource = typeof source.at === "string" ? source.at : source.unlockedAt;
+    return {
+      id: safeId,
+      name,
+      at: typeof atSource === "string" ? atSource.slice(0, 40) : null,
+      level: source.level != null ? clampSaveInt(source.level, 1, 1, 100) : null,
+    };
+  }
+
+  function asSaveList(value) {
+    const entries = [];
+    if (Array.isArray(value)) {
+      value.forEach((entry) => {
+        if (!entry || typeof entry !== "object") return;
+        const normalized = normalizeSaveEntry(entry.id, entry);
+        if (normalized) entries.push(normalized);
+      });
+    } else if (value && typeof value === "object") {
+      Object.keys(value).forEach((id) => {
+        const normalized = normalizeSaveEntry(id, value[id]);
+        if (normalized) entries.push(normalized);
+      });
+    }
+    const seen = {};
+    return entries
+      .filter((entry) => {
+        if (seen[entry.id]) return false;
+        seen[entry.id] = true;
+        return true;
+      })
+      .slice(0, 40);
+  }
+
+  /**
+   * Compact progress record shared by localStorage and Supabase.
+   * `bestScore` is the browser best LOC, separate from the run `score`.
+   */
+  function cloudSaveFromSnapshot(snap, bestScore) {
+    const source = snap || {};
+    const score = clampSaveInt(
+      source.linesOfCode != null ? source.linesOfCode : source.score,
+      0,
+      0
+    );
+    const status = SAVE_STATUSES.indexOf(source.status) >= 0 ? source.status : "ready";
+    return {
+      pathwayId: source.pathwayId || null,
+      level: clampSaveInt(source.level, 1, 1),
+      questTitle: source.lessonTitle || source.sprint || null,
+      score,
+      moves: clampSaveInt(source.moves, 0, 0),
+      phase: source.phase === "endgame" ? "endgame" : "path",
+      status,
+      bestScore: Math.max(score, clampSaveInt(bestScore, 0, 0)),
+      trophies: asSaveList(source.trophies),
+      loot: asSaveList(source.items != null ? source.items : source.loot),
+      skills: asSaveList(source.skills),
+      challengeIndex: clampSaveInt(source.challengeIndex, 0, 0),
+      levelScore: clampSaveInt(source.levelScore, 0, 0),
+      graduated: Boolean(source.graduated),
+      classExpert: Boolean(source.classExpert),
+      challengesCleared: clampSaveInt(source.challengesCleared, 0, 0),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  /** Row shape for public.branchborne_saves. Omits the auth user id when absent. */
+  function toPlayerSaveRow(userId, save) {
+    const canonical = canonicalCloudSave(save);
+    const row = {
+      pathway_id: canonical.pathwayId,
+      level: canonical.level,
+      quest_title: canonical.questTitle,
+      score: canonical.score,
+      moves: canonical.moves,
+      phase: canonical.phase,
+      status: canonical.status,
+      high_score: canonical.bestScore,
+      trophies: canonical.trophies,
+      items: canonical.loot,
+      skills: canonical.skills,
+      challenge_index: canonical.challengeIndex,
+      level_score: canonical.levelScore,
+      graduated: canonical.graduated,
+      class_expert: canonical.classExpert,
+      challenges_cleared: canonical.challengesCleared,
+      updated_at: canonical.updatedAt,
+    };
+    if (isPlayerUuid(userId)) row.user_id = String(userId).toLowerCase();
+    return row;
+  }
+
+  function canonicalCloudSave(input) {
+    if (!input || typeof input !== "object") return null;
+    const fromRow =
+      input.user_id != null ||
+      input.pathway_id != null ||
+      input.high_score != null ||
+      input.quest_title != null ||
+      input.class_expert != null;
+    const rawPathway = fromRow ? input.pathway_id || null : input.pathwayId || null;
+    const pathwayId = rawPathway && PATHWAY_BY_ID[rawPathway] ? rawPathway : null;
+    const score = clampSaveInt(fromRow ? input.score : input.score, 0, 0, 100000000);
+    const bestScore = clampSaveInt(fromRow ? input.high_score : input.bestScore, 0, score, 100000000);
+    const statusSource = fromRow ? input.status : input.status;
+    return {
+      pathwayId,
+      level: clampSaveInt(input.level, 1, 1, 100),
+      questTitle: plainLabel(fromRow ? input.quest_title : input.questTitle, 80) || null,
+      score,
+      moves: clampSaveInt(input.moves, 0, 0, 999),
+      phase: (fromRow ? input.phase : input.phase) === "endgame" ? "endgame" : "path",
+      status: SAVE_STATUSES.indexOf(statusSource) >= 0 ? statusSource : "ready",
+      bestScore: Math.max(score, bestScore),
+      trophies: asSaveList(input.trophies),
+      loot: asSaveList(fromRow ? input.items : input.loot != null ? input.loot : input.items),
+      skills: asSaveList(input.skills),
+      challengeIndex: clampSaveInt(fromRow ? input.challenge_index : input.challengeIndex, 0, 0),
+      levelScore: clampSaveInt(fromRow ? input.level_score : input.levelScore, 0, 0),
+      graduated: Boolean(input.graduated),
+      classExpert: Boolean(fromRow ? input.class_expert : input.classExpert),
+      challengesCleared: clampSaveInt(
+        fromRow ? input.challenges_cleared : input.challengesCleared,
+        0,
+        0
+      ),
+      updatedAt: (fromRow ? input.updated_at : input.updatedAt) || null,
+    };
+  }
+
+  /** Last-write-wins for the quest, union for trophies, loot, skills, and best LOC. */
+  function mergeCloudSaves(localSave, remoteSave) {
+    const local = canonicalCloudSave(localSave);
+    const remote = canonicalCloudSave(remoteSave);
+    if (!local) return remote;
+    if (!remote) return local;
+    const localTime = Date.parse(local.updatedAt || "") || 0;
+    const remoteTime = Date.parse(remote.updatedAt || "") || 0;
+    const newer = remoteTime >= localTime ? remote : local;
+    const older = newer === remote ? local : remote;
+    const union = (a, b) => {
+      const map = {};
+      asSaveList(a)
+        .concat(asSaveList(b))
+        .forEach((entry) => {
+          map[entry.id] = map[entry.id] ? Object.assign({}, map[entry.id], entry) : entry;
+        });
+      return Object.keys(map).map((id) => map[id]);
+    };
+    return {
+      pathwayId: newer.pathwayId || older.pathwayId,
+      level: newer.level,
+      questTitle: newer.questTitle || older.questTitle,
+      score: newer.score,
+      moves: newer.moves,
+      phase: newer.phase,
+      status: newer.status,
+      bestScore: Math.max(newer.bestScore, older.bestScore),
+      trophies: union(newer.trophies, older.trophies),
+      loot: union(newer.loot, older.loot),
+      skills: union(newer.skills, older.skills),
+      challengeIndex: newer.challengeIndex,
+      levelScore: newer.levelScore,
+      graduated: Boolean(newer.graduated || older.graduated),
+      classExpert: Boolean(newer.classExpert || older.classExpert),
+      challengesCleared: Math.max(newer.challengesCleared, older.challengesCleared),
+      updatedAt: newer.updatedAt || older.updatedAt,
+    };
+  }
+
+  function knownSkill(id) {
+    const lessons = CURRICULUM.concat(ENDGAME_CHALLENGES);
+    for (let i = 0; i < lessons.length; i += 1) {
+      const skill = lessons[i].skill;
+      if (skill && skill.id === id) return skill;
+    }
+    return null;
+  }
+
   function createGame(options) {
     const opts = options || {};
     const random = opts.random || Math.random;
@@ -1117,6 +1364,20 @@
       busy: false,
       characterPulse: 0,
     };
+    let progressHook = null;
+
+    function setProgressHook(fn) {
+      progressHook = typeof fn === "function" ? fn : null;
+    }
+
+    function notifyProgress(reason) {
+      if (!progressHook) return;
+      try {
+        progressHook(snapshot(), reason);
+      } catch (_err) {
+        /* A cloud-save failure must not stop the match. */
+      }
+    }
 
     function currentLesson() {
       return lessonFor(state.level, state.pathwayId, state.phase, state.challengeIndex);
@@ -1178,6 +1439,7 @@
           pushLog(`loot: ${item.name}`);
         }
       });
+      if (gained.trophies.length || gained.items.length) notifyProgress("trophy");
       return gained;
     }
 
@@ -1226,6 +1488,7 @@
         unlockAchievements();
         unlockTrophiesAndLoot();
         syncActiveQuest(false);
+        notifyProgress("end");
         return true;
       }
       state.challengeIndex += 1;
@@ -1370,6 +1633,7 @@
         } else if (state.levelScore < state.goal) {
           state.status = "over";
           state.message = "Out of moves on this raid — try again.";
+          notifyProgress("end");
         }
       }
     }
@@ -1396,6 +1660,7 @@
       state.busy = false;
       afterResolveCheck();
       state.fx.push({ id: `swap-${now()}`, at: now(), type: "swap", a, b });
+      notifyProgress(state.status === "over" ? "end" : "match");
       return { ok: true, waves: resolved.waves, sounds: ["rotate"].concat(outcome.sounds || []) };
     }
 
@@ -1495,6 +1760,7 @@
           afterResolveCheck();
           pushLog(`cast ${power.name} — cleared ${target}`);
           unlockAchievements();
+          notifyProgress(state.status === "over" ? "end" : "match");
           return { ok: true, power, sounds: sounds.concat(outcome.sounds || []) };
         }
       } else if (power.id === "query-storm") {
@@ -1539,6 +1805,7 @@
 
       state.fx.push({ id: `power-${now()}`, at: now(), type: "power", power: power.id });
       unlockAchievements();
+      notifyProgress(state.status === "over" ? "end" : "match");
       return { ok: true, power, sounds };
     }
 
@@ -1598,6 +1865,7 @@
         state.board = fillBoardNoMatches(random, state.level, state.pathwayId);
         state.message = `Retry — ${currentLesson().title}`;
         state.levelFlash = now();
+        notifyProgress("start");
         return;
       }
       state.status = "playing";
@@ -1611,12 +1879,14 @@
       grantLessonSkill(state.level);
       syncActiveQuest(true);
       unlockTrophiesAndLoot();
+      notifyProgress("start");
     }
 
     function pause() {
       if (state.status !== "playing") return;
       state.status = "paused";
       state.message = "Working tree paused.";
+      notifyProgress("pause");
     }
 
     function resume() {
@@ -1840,6 +2110,70 @@
       return t;
     }
 
+    function restoreCloudSave(payload) {
+      const save = canonicalCloudSave(payload);
+      if (!save) return false;
+      const pathwayId = save.pathwayId && PATHWAY_BY_ID[save.pathwayId] ? save.pathwayId : null;
+      state.pathwayId = pathwayId;
+      state.phase = save.phase === "endgame" ? "endgame" : "path";
+      state.level = save.level;
+      state.challengeIndex = save.challengeIndex;
+      state.challengesCleared = save.challengesCleared;
+      state.graduated = save.graduated;
+      state.classExpert = save.classExpert;
+      state.linesOfCode = save.score;
+      state.score = save.score;
+      state.levelScore = save.levelScore;
+      state.moves = save.moves;
+      state.goal = goalForLevel(state.level, state.pathwayId, state.phase, state.challengeIndex);
+      if (state.phase === "endgame") {
+        const lesson = currentLesson();
+        state.bossHp = Math.max(0, (lesson.bossHp || state.goal) - state.levelScore);
+      } else {
+        state.bossHp = 0;
+      }
+      state.trophies = {};
+      save.trophies.forEach((entry) => {
+        const catalog = TROPHIES.find((trophy) => trophy.id === entry.id);
+        if (!catalog) return;
+        state.trophies[entry.id] = Object.assign({}, catalog, { at: entry.at || null });
+      });
+      state.items = {};
+      save.loot.forEach((entry) => {
+        const catalog = LOOT_ITEMS.find((item) => item.id === entry.id);
+        if (!catalog) return;
+        state.items[entry.id] = Object.assign({}, catalog, { at: entry.at || null });
+      });
+      state.skills = {};
+      save.skills.forEach((entry) => {
+        const skill = knownSkill(entry.id);
+        if (!skill) return;
+        state.skills[entry.id] = {
+          id: skill.id,
+          name: skill.name,
+          icon: skill.icon,
+          blurb: skill.blurb,
+          level: entry.level || state.level,
+          unlockedAt: entry.at || null,
+        };
+      });
+      let status = SAVE_STATUSES.indexOf(save.status) >= 0 ? save.status : "ready";
+      if (!pathwayId) status = "class-select";
+      if (status === "playing") status = "paused";
+      state.status = status;
+      state.board = fillBoardNoMatches(random, Math.max(1, state.level), state.pathwayId);
+      state.selected = null;
+      state.hint = null;
+      state.busy = false;
+      state.fx = [];
+      state.message = pathwayId
+        ? "Progress restored. Resume when you are ready."
+        : "Pick a pathway hero to begin.";
+      if (pathwayId) syncActiveQuest(false);
+      else state.activeQuest = null;
+      return true;
+    }
+
     return {
       COLS,
       ROWS,
@@ -1862,6 +2196,8 @@
       consumeTrophy,
       consumeLoot,
       snapshot,
+      restoreCloudSave,
+      setProgressHook,
       findMatches: () => findMatches(state.board),
       get status() {
         return state.status;
@@ -1881,7 +2217,39 @@
   const STORAGE = {
     high: "git-blocks-high-score",
     prefs: "git-blocks-prefs-v2",
+    progress: "git-blocks-progress-v1",
   };
+
+  let activeScope = "guest";
+
+  function scopeUserId() {
+    return activeScope === "guest" ? null : activeScope;
+  }
+
+  function scopedStorageKey(base) {
+    return playerStorageKey(base, scopeUserId());
+  }
+
+  function readStore(base) {
+    try {
+      if (typeof localStorage === "undefined") return null;
+      const scoped = localStorage.getItem(scopedStorageKey(base));
+      if (scoped != null) return scoped;
+      if (activeScope === "guest") return localStorage.getItem(base);
+      return null;
+    } catch (_err) {
+      return null;
+    }
+  }
+
+  function writeStore(base, value) {
+    try {
+      if (typeof localStorage === "undefined") return;
+      localStorage.setItem(scopedStorageKey(base), value);
+    } catch (_err) {
+      /* private mode */
+    }
+  }
 
   const BG_PRESETS = [
     {
@@ -2075,25 +2443,56 @@
     };
   }
 
-  function loadPrefs() {
+  function sanitizePrefs(input) {
     const base = defaultPrefs();
+    const source = input || {};
+    const bg = source.background || {};
+    const music = source.music || {};
+    const api = securityApi();
+    let background = { mode: "preset", presetId: "navy", css: BG_PRESETS[0].css, image: "" };
+    if (bg.mode === "preset") {
+      const preset = BG_PRESETS.find((item) => item.id === bg.presetId) || BG_PRESETS[0];
+      background = { mode: "preset", presetId: preset.id, css: preset.css, image: "" };
+    } else if (bg.mode === "image") {
+      const image = api ? api.sanitizeHttpsUrl(bg.image) : "";
+      if (image) background = { mode: "image", presetId: "", css: "", image };
+    } else if (bg.mode === "css") {
+      const css = api ? api.sanitizeCssBackground(bg.css) : "";
+      if (css) background = { mode: "css", presetId: "", css, image: "" };
+    }
+    const trackId = (api && api.sanitizeTrackId(music.trackId)) || "stack-sprint";
+    const customUrl = api ? api.sanitizeHttpsUrl(music.customUrl) : "";
+    const volume = api ? api.clampVolume(music.volume) : base.music.volume;
+    return {
+      background,
+      music: { trackId, customUrl, volume },
+      graphics: source.graphics === "simple" ? "simple" : "advanced",
+    };
+  }
+
+  function shareablePrefs(prefs) {
+    const safe = sanitizePrefs(prefs);
+    if (safe.background.mode === "image") {
+      safe.background = { mode: "preset", presetId: "navy", css: BG_PRESETS[0].css, image: "" };
+    }
+    safe.music.customUrl = "";
+    if (safe.music.trackId === "custom") safe.music.trackId = "stack-sprint";
+    return safe;
+  }
+
+  function loadPrefs() {
     try {
-      const raw = localStorage.getItem(STORAGE.prefs);
-      if (!raw) return base;
-      const parsed = JSON.parse(raw);
-      return {
-        background: Object.assign({}, base.background, parsed.background || {}),
-        music: Object.assign({}, base.music, parsed.music || {}),
-        graphics: parsed.graphics === "simple" ? "simple" : "advanced",
-      };
+      const raw = readStore(STORAGE.prefs);
+      if (!raw) return defaultPrefs();
+      return sanitizePrefs(JSON.parse(raw));
     } catch (_err) {
-      return base;
+      return defaultPrefs();
     }
   }
 
   function savePrefs(prefs) {
     try {
-      localStorage.setItem(STORAGE.prefs, JSON.stringify(prefs));
+      writeStore(STORAGE.prefs, JSON.stringify(sanitizePrefs(prefs)));
     } catch (_err) {
       /* private mode */
     }
@@ -2554,8 +2953,9 @@
 
     function startUrl(url) {
       stopAll();
-      if (!url) return false;
-      htmlAudio = new Audio(url);
+      const safe = safeAudioUrl(url);
+      if (!safe) return false;
+      htmlAudio = new Audio(safe);
       htmlAudio.loop = true;
       htmlAudio.volume = volume;
       htmlAudio.play().catch(() => startGenerated("ambient"));
@@ -2676,17 +3076,33 @@
     return document.querySelector("[data-dev-clouds]");
   }
 
+  function safeAudioUrl(url) {
+    if (!url || typeof url !== "string") return "";
+    try {
+      const parsed = new URL(url, typeof location !== "undefined" ? location.href : "https://matthummel.com/");
+      const sameOrigin =
+        typeof location !== "undefined" &&
+        parsed.origin === location.origin &&
+        (parsed.protocol === "http:" || parsed.protocol === "https:");
+      if (sameOrigin && !parsed.username && !parsed.password) return parsed.href;
+      const api = securityApi();
+      return api ? api.sanitizeHttpsUrl(url) : "";
+    } catch (_err) {
+      return "";
+    }
+  }
+
   function applyBackground(bg, rootEl) {
+    const safe = sanitizePrefs({ background: bg, music: defaultPrefs().music, graphics: "advanced" }).background;
     const target = document.documentElement;
-    let value = bg.css || BG_PRESETS[0].css;
-    if (bg.mode === "image" && bg.image) {
-      value = `linear-gradient(rgba(7,17,31,.55), rgba(7,17,31,.72)), url("${bg.image.replace(/"/g, "")}") center / cover no-repeat fixed`;
-    } else if (bg.mode === "css" && bg.css) {
-      value = bg.css;
-    } else if (bg.mode === "preset") {
-      const preset = BG_PRESETS.find((p) => p.id === bg.presetId) || BG_PRESETS[0];
+    let value = BG_PRESETS[0].css;
+    if (safe.mode === "image" && safe.image) {
+      value = `linear-gradient(rgba(7,17,31,.55), rgba(7,17,31,.72)), url("${safe.image}") center / cover no-repeat fixed`;
+    } else if (safe.mode === "css" && safe.css) {
+      value = safe.css;
+    } else if (safe.mode === "preset") {
+      const preset = BG_PRESETS.find((p) => p.id === safe.presetId) || BG_PRESETS[0];
       value = preset.css;
-      bg.css = preset.css;
     }
     target.style.setProperty("--gb-backdrop", value);
     const pattern = patternForBackground(bg);
@@ -2710,10 +3126,11 @@
 
   function readConfig() {
     const cfg = (typeof window !== "undefined" && window.GitBlocksConfig) || {};
+    const fallback =
+      typeof location !== "undefined" ? `${location.origin}${location.pathname}` : "https://matthummel.com/git-blocks/";
+    const api = securityApi();
     return {
-      shareUrl:
-        cfg.shareUrl ||
-        (typeof location !== "undefined" ? `${location.origin}${location.pathname}` : "https://matthummel.com/git-blocks/"),
+      shareUrl: api && api.safeShareBase ? api.safeShareBase(cfg.shareUrl, fallback) : fallback,
       autoStart: cfg.autoStart === true,
       layout: cfg.layout || "viewport",
     };
@@ -2721,9 +3138,10 @@
 
   function encodeShareHash(prefs, includePrefs) {
     if (!includePrefs) return "";
+    const safe = shareablePrefs(prefs);
     const payload = {
-      bg: prefs.background,
-      music: { trackId: prefs.music.trackId, customUrl: prefs.music.customUrl, volume: prefs.music.volume },
+      bg: safe.background,
+      music: { trackId: safe.music.trackId, customUrl: "", volume: safe.music.volume },
     };
     try {
       return `#gb=${btoa(unescape(encodeURIComponent(JSON.stringify(payload))))}`;
@@ -2735,7 +3153,7 @@
   function decodeShareHash() {
     if (typeof location === "undefined") return null;
     const m = location.hash.match(/#gb=([^&]+)/);
-    if (!m) return null;
+    if (!m || m[1].length > 4000) return null;
     try {
       return JSON.parse(decodeURIComponent(escape(atob(m[1]))));
     } catch (_err) {
@@ -2752,8 +3170,13 @@
     const prefs = loadPrefs();
     const shared = decodeShareHash();
     if (shared) {
-      if (shared.bg) prefs.background = Object.assign({}, prefs.background, shared.bg);
-      if (shared.music) prefs.music = Object.assign({}, prefs.music, shared.music);
+      const safeShared = shareablePrefs({
+        background: shared.bg || prefs.background,
+        music: shared.music || prefs.music,
+        graphics: prefs.graphics,
+      });
+      if (shared.bg) prefs.background = safeShared.background;
+      if (shared.music) prefs.music = safeShared.music;
     }
 
     const overlay = root.querySelector("[data-overlay]");
@@ -2773,20 +3196,104 @@
     const shareBtn = root.querySelector("[data-share]");
     const panel = root.querySelector("[data-customize-panel]");
 
-    let high = 0;
-    try {
-      high = Number(localStorage.getItem(STORAGE.high) || 0);
-    } catch (_err) {
-      high = 0;
-    }
+    let high = Number(readStore(STORAGE.high) || 0);
+    if (!Number.isFinite(high) || high < 0) high = 0;
 
     const game = createGame({ reducedMotion: prefersReducedMotion() });
+    root._branchborneGame = game;
+    let applyingRemote = false;
+
+    function readLocalProgress() {
+      try {
+        const raw = readStore(STORAGE.progress);
+        return raw ? JSON.parse(raw) : null;
+      } catch (_err) {
+        return null;
+      }
+    }
+
+    function writeLocalProgress(save) {
+      writeStore(STORAGE.progress, JSON.stringify(save));
+    }
+
+    function progressWorthKeeping(save) {
+      if (!save) return false;
+      return Boolean(
+        save.pathwayId ||
+          save.score > 0 ||
+          save.bestScore > 0 ||
+          (save.trophies && save.trophies.length) ||
+          (save.loot && save.loot.length) ||
+          save.status === "paused" ||
+          save.status === "over"
+      );
+    }
+
+    const storedProgress = canonicalCloudSave(readLocalProgress());
+    if (progressWorthKeeping(storedProgress)) {
+      game.restoreCloudSave(storedProgress);
+      high = Math.max(high, storedProgress.bestScore || 0);
+    }
+
+    function persistSnapshot(snap) {
+      const best = Math.max(high, snap && snap.linesOfCode ? snap.linesOfCode : 0);
+      high = best;
+      writeStore(STORAGE.high, String(high));
+      const save = cloudSaveFromSnapshot(snap, best);
+      writeLocalProgress(save);
+      return save;
+    }
+
+    game.setProgressHook((snap, reason) => {
+      if (applyingRemote) return;
+      const save = persistSnapshot(snap);
+      if (typeof root._branchborneCloudPush === "function") {
+        root._branchborneCloudPush(save, reason);
+      }
+    });
+
+    root._branchborneRemember = (save) => {
+      const canonical = canonicalCloudSave(save);
+      if (!canonical) return;
+      high = Math.max(high, canonical.bestScore || 0);
+      writeStore(STORAGE.high, String(high));
+      writeLocalProgress(canonical);
+    };
+    root._branchborneReadProgress = () => canonicalCloudSave(readLocalProgress());
+    root._branchborneScope = () => activeScope;
+    root._branchborneSetScope = (userId) => {
+      const next = isPlayerUuid(userId) ? String(userId).toLowerCase() : "guest";
+      if (next === activeScope) return activeScope;
+      activeScope = next;
+      applyingRemote = true;
+      try {
+        const stored = canonicalCloudSave(readLocalProgress());
+        if (progressWorthKeeping(stored)) {
+          game.restoreCloudSave(stored);
+          high = Math.max(0, stored.bestScore || 0);
+        } else {
+          game.reopenClassSelect();
+          high = Number(readStore(STORAGE.high) || 0);
+          if (!Number.isFinite(high) || high < 0) high = 0;
+        }
+        const nextPrefs = loadPrefs();
+        prefs.background = nextPrefs.background;
+        prefs.music = nextPrefs.music;
+        prefs.graphics = nextPrefs.graphics;
+        applyBackground(prefs.background, root);
+        root.classList.toggle("gfx-simple", prefs.graphics === "simple");
+        if (highEl) highEl.textContent = String(high);
+      } finally {
+        applyingRemote = false;
+      }
+      return activeScope;
+    };
     const ctx = canvas.getContext("2d");
     const music = createMusicEngine();
     const sfx = createSfxEngine();
     let muted = false;
     let raf = 0;
-    let lastLevelShown = 1;
+    let lastLevelShown = game.snapshot().level || 1;
     let autoStarted = false;
     const particles = [];
     let flashCells = [];
@@ -2796,10 +3303,11 @@
     applyBackground(prefs.background, root);
     music.setVolume(prefs.music.volume || 0.35);
     root.classList.toggle("gfx-simple", prefs.graphics === "simple");
-    root._gbLevel = 1;
-    root._gbPathway = null;
-    root._gbPhase = "path";
-    root._gbChallenge = 0;
+    const bootSnap = game.snapshot();
+    root._gbLevel = bootSnap.level || 1;
+    root._gbPathway = bootSnap.pathwayId || null;
+    root._gbPhase = bootSnap.phase || "path";
+    root._gbChallenge = bootSnap.challengeIndex || 0;
 
     if (!prefersReducedMotion()) {
       window.setInterval(() => {
@@ -2875,36 +3383,36 @@
         <div class="quest-bang" aria-hidden="true">!</div>
         <header class="quest-header">
           <p class="quest-availability">${intro.start ? "Available Quest" : "Quest Complete — Next Chapter"}</p>
-          <h3 class="quest-title">${intro.title || "Untitled Quest"}</h3>
-          <p class="quest-zone">${intro.track || "Path"} · ${intro.rank || "Intern"} · Chapter ${step}/${total}</p>
+          <h3 class="quest-title">${escapeHtml(intro.title || "Untitled Quest")}</h3>
+          <p class="quest-zone">${escapeHtml(intro.track || "Path")} · ${escapeHtml(intro.rank || "Intern")} · Chapter ${step}/${total}</p>
         </header>
         <div class="quest-scroll">
-          <p class="quest-giver"><span>Quest giver</span> ${giver}</p>
-          <p class="quest-desc">${lore}</p>
-          <p class="quest-desc muted">${skillBlurb} Walk the path toward <strong>Senior Developer</strong>.</p>
+          <p class="quest-giver"><span>Quest giver</span> ${escapeHtml(giver)}</p>
+          <p class="quest-desc">${escapeHtml(lore)}</p>
+          <p class="quest-desc muted">${escapeHtml(skillBlurb)} Walk the path toward <strong>Senior Developer</strong>.</p>
           <h4 class="quest-section">Objectives</h4>
           <ul class="quest-objectives">
             <li><span class="quest-check" aria-hidden="true"></span> Write <strong>${goal} LOC</strong> by matching logo gems</li>
             <li><span class="quest-check" aria-hidden="true"></span> Survive on <strong>${moves} moves</strong> (or earn more)</li>
             <li><span class="quest-check" aria-hidden="true"></span> Study the lore — every clear reveals a web-dev fact</li>
-            <li><span class="quest-check" aria-hidden="true"></span> Claim skill reward: <strong>${skillLine}</strong></li>
+            <li><span class="quest-check" aria-hidden="true"></span> Claim skill reward: <strong>${escapeHtml(skillLine)}</strong></li>
           </ul>
           <h4 class="quest-section">Rewards</h4>
           <div class="quest-rewards">
             <div class="quest-reward-item">
               <em>Skill</em>
-              <strong>${skillLine}</strong>
+              <strong>${escapeHtml(skillLine)}</strong>
             </div>
             <div class="quest-reward-item">
               <em>Rank track</em>
-              <strong>${intro.rank || "Intern"} → Senior</strong>
+              <strong>${escapeHtml(intro.rank || "Intern")} → Senior</strong>
             </div>
             <div class="quest-reward-item">
               <em>Chapter</em>
               <strong>${step} / ${total}</strong>
             </div>
           </div>
-          <div class="quest-progress" aria-hidden="true"><span style="width:${pct}%"></span></div>
+          <div class="quest-progress" aria-hidden="true"><span data-quest-meter></span></div>
           <div class="fact-cloud-chips quest-chips"></div>
         </div>
         <footer class="quest-actions">
@@ -2914,6 +3422,8 @@
           }</button>
         </footer>
       `;
+      const meter = card.querySelector("[data-quest-meter]");
+      if (meter) meter.style.width = `${Math.max(0, Math.min(100, Number(pct) || 0))}%`;
       const chips = card.querySelector(".quest-chips");
       (intro.clouds || []).forEach((word) => {
         const chip = document.createElement("span");
@@ -2968,8 +3478,10 @@
       (skills || []).forEach((skill) => {
         const chip = document.createElement("span");
         chip.className = "skill-chip";
-        chip.title = skill.blurb || skill.name;
-        chip.innerHTML = `<em>${skill.icon || "★"}</em> ${skill.name}`;
+        chip.title = skill.blurb || skill.name || "";
+        const icon = document.createElement("em");
+        icon.textContent = skill.icon || "★";
+        chip.append(icon, document.createTextNode(` ${skill.name || ""}`));
         host.appendChild(chip);
       });
     }
@@ -2981,9 +3493,12 @@
         root.style.removeProperty("--pathway-secondary");
         return;
       }
-      root.setAttribute("data-pathway", pathway.id);
-      root.style.setProperty("--pathway-accent", pathway.accent);
-      root.style.setProperty("--pathway-secondary", pathway.secondary || pathway.accent);
+      root.setAttribute(
+        "data-pathway",
+        safeToken(pathway.id, ["frontend", "backend", "wordpress", "fullstack"], "frontend")
+      );
+      root.style.setProperty("--pathway-accent", safeHex(pathway.accent, "#4f8fd4"));
+      root.style.setProperty("--pathway-secondary", safeHex(pathway.secondary || pathway.accent, "#4f8fd4"));
       document.documentElement.style.setProperty("--gb-backdrop", pathway.backdrop);
       document.documentElement.dataset.gbPattern = pathway.pattern || "drift";
       const embed = root.closest(".git-blocks-embed");
@@ -3031,12 +3546,17 @@
       figure.innerHTML = cartoonCharacterMarkup(char.silhouette, char.colors, char.idle);
       const meta = document.createElement("div");
       meta.className = "hero-meta";
-      meta.innerHTML = `
-        <strong>${path.name}</strong>
-        <span>${path.role}</span>
-        <span class="hero-power">${(path.power && path.power.name) || "Class power"}</span>
-        <span class="hero-power-blurb">${(path.power && path.power.blurb) || ""}</span>
-      `;
+      const nameEl = document.createElement("strong");
+      nameEl.textContent = path.name || "";
+      const roleEl = document.createElement("span");
+      roleEl.textContent = path.role || "";
+      const powerEl = document.createElement("span");
+      powerEl.className = "hero-power";
+      powerEl.textContent = (path.power && path.power.name) || "Class power";
+      const blurbEl = document.createElement("span");
+      blurbEl.className = "hero-power-blurb";
+      blurbEl.textContent = (path.power && path.power.blurb) || "";
+      meta.append(nameEl, roleEl, powerEl, blurbEl);
       hero.appendChild(figure);
       hero.appendChild(meta);
     }
@@ -3158,21 +3678,21 @@
       PATHWAY_CLASSES.forEach((path) => {
         const card = document.createElement("button");
         card.type = "button";
-        card.className = `class-card class-${path.id}`;
-        card.style.setProperty("--card-accent", path.accent);
+        card.className = `class-card class-${safeToken(path.id, ["frontend", "backend", "wordpress", "fullstack"], "frontend")}`;
+        card.style.setProperty("--card-accent", safeHex(path.accent, "#4f8fd4"));
         const char = path.character || {};
         card.innerHTML = `
           <span class="class-card-figure">
             ${cartoonCharacterMarkup(char.silhouette, char.colors, char.idle)}
           </span>
           <span class="class-card-copy">
-            <strong>${path.name}</strong>
-            <em>${path.role}</em>
-            <span class="class-card-blurb">${path.blurb}</span>
-            <span class="class-card-power">${(path.power && path.power.name) || "Power"} — ${(path.power && path.power.blurb) || ""}</span>
+            <strong>${escapeHtml(path.name)}</strong>
+            <em>${escapeHtml(path.role)}</em>
+            <span class="class-card-blurb">${escapeHtml(path.blurb)}</span>
+            <span class="class-card-power">${escapeHtml((path.power && path.power.name) || "Power")} — ${escapeHtml((path.power && path.power.blurb) || "")}</span>
             <span class="class-card-gems">${path.affinity
               .slice(0, 5)
-              .map((id) => (META[id] && META[id].label) || id)
+              .map((id) => escapeHtml((META[id] && META[id].label) || id))
               .join(" · ")}</span>
           </span>
         `;
@@ -3285,10 +3805,21 @@
         const boardWrap = root.querySelector(".board-wrap") || root;
         boardWrap.appendChild(toast);
       }
-      toast.className = `loot-toast is-visible is-${kind || "loot"}`;
-      toast.innerHTML = `<span class="loot-toast-icon">${entry.icon || "★"}</span><div><strong>${
-        kind === "trophy" ? "Trophy earned" : "Item found"
-      }</strong><p>${entry.name}</p><em>${entry.blurb || ""}</em></div>`;
+      const toastKind = kind === "trophy" ? "trophy" : "loot";
+      toast.className = `loot-toast is-visible is-${toastKind}`;
+      toast.replaceChildren();
+      const icon = document.createElement("span");
+      icon.className = "loot-toast-icon";
+      icon.textContent = entry.icon || "★";
+      const copy = document.createElement("div");
+      const label = document.createElement("strong");
+      label.textContent = toastKind === "trophy" ? "Trophy earned" : "Item found";
+      const name = document.createElement("p");
+      name.textContent = entry.name || "";
+      const blurb = document.createElement("em");
+      blurb.textContent = entry.blurb || "";
+      copy.append(label, name, blurb);
+      toast.append(icon, copy);
       window.clearTimeout(showLootToast._timer);
       showLootToast._timer = window.setTimeout(() => toast.classList.remove("is-visible"), 4200);
     }
@@ -3318,14 +3849,16 @@
         <div class="side-quest-card">
           <div class="side-quest-bang" aria-hidden="true">!</div>
           <p class="side-quest-kicker">${q.phase === "endgame" ? "Raid Quest" : "Available Quest"}</p>
-          <h3 class="side-quest-title">${q.title}</h3>
-          <p class="side-quest-meta">${q.pathway} · ${q.rank || ""} · ${q.level}/${q.total}</p>
-          <p class="side-quest-tip"><strong>Dev tip</strong> ${q.tip || ""}</p>
+          <h3 class="side-quest-title">${escapeHtml(q.title)}</h3>
+          <p class="side-quest-meta">${escapeHtml(q.pathway)} · ${escapeHtml(q.rank || "")} · ${q.level}/${q.total}</p>
+          <p class="side-quest-tip"><strong>Dev tip</strong> ${escapeHtml(q.tip || "")}</p>
           <div class="side-quest-progress" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${pct}">
-            <span style="width:${pct}%"></span>
+            <span data-quest-fill></span>
           </div>
-          <p class="side-quest-goal">${q.progress}/${q.goal} LOC · Reward: ${skillLine}</p>
+          <p class="side-quest-goal">${q.progress}/${q.goal} LOC · Reward: ${escapeHtml(skillLine)}</p>
         </div>`;
+      const fill = rail.querySelector("[data-quest-fill]");
+      if (fill) fill.style.width = `${pct}%`;
     }
 
     function paintTrophyBoard(snap, force) {
@@ -3394,9 +3927,14 @@
           const cell = document.createElement("div");
           cell.className = "trophy-cell" + (t.owned ? " is-owned" : " is-locked");
           cell.title = t.owned ? `${t.name} — ${t.blurb}` : `Locked: ${t.name}`;
-          cell.innerHTML = `<span aria-hidden="true">${t.owned ? t.icon : "?"}</span><em>${t.name}</em>${
-            t.owned ? `<small>${t.blurb || ""}</small>` : "<small>Keep questing</small>"
-          }`;
+          const icon = document.createElement("span");
+          icon.setAttribute("aria-hidden", "true");
+          icon.textContent = t.owned ? t.icon || "★" : "?";
+          const name = document.createElement("em");
+          name.textContent = t.name || "";
+          const note = document.createElement("small");
+          note.textContent = t.owned ? t.blurb || "" : "Keep questing";
+          cell.append(icon, name, note);
           grid.appendChild(cell);
         });
         wrap.append(h, grid);
@@ -3809,11 +4347,7 @@
 
     function persistHigh() {
       high = Math.max(high, game.score);
-      try {
-        localStorage.setItem(STORAGE.high, String(high));
-      } catch (_err) {
-        /* */
-      }
+      writeStore(STORAGE.high, String(high));
     }
 
     function startLoop() {
@@ -3944,6 +4478,15 @@
         if (event.key === "Escape") closeCustomize();
         return;
       }
+      const accountPanel = root.querySelector("[data-account-panel]");
+      if (accountPanel && !accountPanel.hidden) {
+        if (event.key === "Escape") {
+          event.preventDefault();
+          accountPanel.hidden = true;
+          accountPanel.setAttribute("hidden", "");
+        }
+        return;
+      }
       if (event.key === "Enter" && game.status !== "playing") {
         event.preventDefault();
         handlePlay();
@@ -3971,6 +4514,11 @@
 
     function openCustomize(tab) {
       if (!panel) return;
+      const accountPanel = root.querySelector("[data-account-panel]");
+      if (accountPanel) {
+        accountPanel.hidden = true;
+        accountPanel.setAttribute("hidden", "");
+      }
       panel.hidden = false;
       panel.removeAttribute("hidden");
       root.classList.add("is-customizing");
@@ -4086,7 +4634,16 @@
         custom.dataset.bound = "1";
         custom.value = prefs.music.customUrl || "";
         custom.addEventListener("change", () => {
-          prefs.music.customUrl = custom.value.trim();
+          const api = securityApi();
+          const safeUrl = api ? api.sanitizeHttpsUrl(custom.value.trim()) : "";
+          if (custom.value.trim() && !safeUrl) {
+            custom.value = "";
+            prefs.music.customUrl = "";
+            announce("Audio URL must be a single https address.");
+          } else {
+            prefs.music.customUrl = safeUrl;
+            custom.value = safeUrl;
+          }
           savePrefs(prefs);
         });
       }
@@ -4158,8 +4715,19 @@
       bgApply.addEventListener("click", () => {
         const css = (root.querySelector("[data-bg-css]") || {}).value || "";
         const image = ((root.querySelector("[data-bg-image]") || {}).value || "").trim();
-        if (image) prefs.background = { mode: "image", presetId: "", css, image };
-        else prefs.background = { mode: "css", presetId: "", css, image: "" };
+        const api = securityApi();
+        const safeImage = image && api ? api.sanitizeHttpsUrl(image) : "";
+        const safeCss = api ? api.sanitizeCssBackground(css) : "";
+        if (image && !safeImage) {
+          announce("Image URL must be a single https address.");
+          return;
+        }
+        if (!image && css.trim() && !safeCss) {
+          announce("That background was rejected. Use a color or gradient without URLs.");
+          return;
+        }
+        if (safeImage) prefs.background = { mode: "image", presetId: "", css: safeCss, image: safeImage };
+        else prefs.background = { mode: "css", presetId: "", css: safeCss || BG_PRESETS[0].css, image: "" };
         applyBackground(prefs.background, root);
         savePrefs(prefs);
         renderBgPresets();
@@ -4300,6 +4868,11 @@
     fillBoardNoMatches,
     areAdjacent,
     scoreMatch,
+    cloudSaveFromSnapshot,
+    canonicalCloudSave,
+    toPlayerSaveRow,
+    mergeCloudSaves,
+    playerStorageKey,
     createGame,
     createSfxEngine,
     discoverFreeTracks,
