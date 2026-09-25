@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- The Save screen no longer shows an account form. Continue opens a side-quest card for the JSON file, PIN, and import.
 - Save opens a JSON prompt first. Continue reveals the existing save panel.
 - Ship progress as `branchborne-save.json` from the Save panel, with a JSON lesson on the player’s real save and an optional PIN stored only as a hash and salt.
 - Added a GitHub landing README, player guide, development notes, support page, and contributing guide.

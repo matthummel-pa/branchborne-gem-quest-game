@@ -160,7 +160,7 @@ Move gems with the pointer. The arrow keys leave the selection where it is.
 
 ## What progress is saved
 
-**Save** opens sign-in. Use an email and password, or **Email me a link**. When you are signed in, the cabinet syncs after a resolved match, a new trophy or loot drop, a pause, and when a run ends. Starting a quest syncs as well, so the pathway is not lost before the first match.
+**Save** opens a JSON prompt, not an account form. **Continue** opens **Ship your save**. **Not now** leaves the board as it is. The cabinet still writes the quest to this browser after a resolved match, a new trophy or loot drop, a pause, and when a run ends.
 
 The saved record is pathway, quest (level and title), lines of code, moves, phase (`path` or `endgame`), best LOC, trophies, loot, and the skills unlocked so far. A playing run is restored as paused so the board can be resumed.
 

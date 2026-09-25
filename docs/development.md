@@ -39,7 +39,7 @@ Open [http://127.0.0.1:4173/](http://127.0.0.1:4173/). Serve the root so `./git-
 | Match size, scoring, moves, lessons, pathways, trophies, drawing, sound | `git-blocks.js` |
 | Theme song | `audio/stack-sprint.ogg` (a `.wav` copy sits beside it) |
 
-The script paints several surfaces that are not in the HTML: the pathway cards, the mana bar and **Cast** button, the quest rail contents, and the trophy dialog. Edit those in `git-blocks.js` (`paintClassSelect`, `paintMana`, `paintQuestRail`, `paintTrophyBoard`). The **Save** panel markup lives in `index.html` and is wired by `cloud-sync.js`.
+The script paints several surfaces that are not in the HTML: the pathway cards, the mana bar and **Cast** button, the quest rail contents, and the trophy dialog. Edit those in `git-blocks.js` (`paintClassSelect`, `paintMana`, `paintQuestRail`, `paintTrophyBoard`). The **Save** prompt and **Ship your save** card live in `index.html` and are wired by `cloud-sync.js`. That card does not show an account form.
 
 `window.GitBlocksConfig` is optional. `shareUrl` overrides the link builder, and `autoStart: true` calls play when status is already `ready`. The checked-in page does not set that flag; a run starts when a pathway card is clicked.
 

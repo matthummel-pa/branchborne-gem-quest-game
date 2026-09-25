@@ -15,7 +15,7 @@ Music starts when you pick a pathway, which is a click, so the browser has a use
 
 ## Cloud save
 
-**Save** in the top bar is optional. The board runs without it.
+The Save screen does not ask for an email or a password. Ship a JSON file from that panel, or keep the guest quest in this browser. The board runs either way.
 
 The browser asks `GET /api/public-config` first, then `./supabase-public.json`. Either source must include a project URL and a publishable key. Copy `supabase-public.example.json` to `supabase-public.json` for a local static server. That file is gitignored. On Netlify, set these site environment variables and leave the values out of git:
 

@@ -76,7 +76,11 @@ assert.ok(cloud.includes("_branchborneSetScope"));
 const html = read("index.html");
 assert.ok(html.includes("Content-Security-Policy"));
 assert.ok(!html.includes("account.js"));
-assert.ok(html.includes('method="post"'));
+assert.ok(!html.includes("data-account-email"));
+assert.ok(!html.includes("data-account-password"));
+assert.ok(!html.includes("Email me a link"));
+assert.ok(!html.includes('type="email"'));
+assert.ok(!html.includes('type="password"'));
 
 const toml = read("netlify.toml");
 assert.ok(toml.includes("X-Frame-Options"));

@@ -1161,6 +1161,71 @@ button:disabled {
   margin-top: 0;
 }
 
+.save-sheet .save-card {
+  width: min(520px, 100%);
+}
+
+.save-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.save-card-head h3 {
+  margin: 0;
+}
+
+.save-sheet .json-prompt-kicker {
+  margin-bottom: 4px;
+}
+
+.save-sheet .field {
+  margin: 12px 0 0;
+}
+
+.save-sheet .field span {
+  color: #e8c56a;
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.save-sheet .json-preview {
+  max-height: 9rem;
+  margin-bottom: 0;
+}
+
+.json-pin-note {
+  margin: 8px 0 12px;
+  color: #cbb892;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.save-sheet [data-json-download],
+.save-sheet [data-json-import] {
+  width: 100%;
+  min-height: 40px;
+}
+
+.save-sheet [data-json-import] {
+  margin-top: 8px;
+}
+
+.save-sheet input[type="file"] {
+  width: 100%;
+  max-width: 100%;
+  font: inherit;
+  font-size: 12px;
+  color: var(--paper);
+}
+
+.save-sheet [hidden] {
+  display: none !important;
+}
+
 @media (max-width: 720px) {
   .json-preview {
     max-height: 8rem;
@@ -1184,6 +1249,10 @@ button:disabled {
   .json-prompt .row-actions button {
     width: 100%;
     min-height: 40px;
+  }
+
+  .save-sheet .json-preview {
+    max-height: 7.5rem;
   }
 }
 

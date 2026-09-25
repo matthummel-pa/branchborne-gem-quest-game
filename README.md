@@ -28,17 +28,15 @@ python3 -m http.server 4173
 
 Open [http://127.0.0.1:4173/](http://127.0.0.1:4173/). Pick a pathway, then swap adjacent gems.
 
-## Save across browsers
+## Save your quest
 
-**Save** in the cabinet chrome signs you in with email and password, or emails you a magic link. After a match, a trophy, a pause, or the end of a run, the cabinet writes pathway, quest, lines of code, moves, phase, best LOC, trophies, and loot to your Supabase account. A reload in another browser restores that row.
+**Save** opens a side quest about JSON. **Continue** opens **Ship your save**. **Not now** leaves the board alone.
 
-![Save progress panel with email, password, sign in, create account, and email me a link](docs/images/save-panel.png)
+The ship card uses the same dark cabinet and gold quest frame as the prompt. It shows a short lesson and a preview of your real save, then downloads `branchborne-save.json`. An optional PIN is 4–8 letters or digits. The file stores a SHA-256 hash and a salt, never the PIN. It only keeps a casual person from opening the file in the game. Anyone who can edit the JSON can still change their own trophies. A file with no PIN still downloads and imports. **Open this save** loads a file of that shape back onto the board.
 
-Cloud save uses Supabase project `ybmseuuumwiyudwqvzuh`. `SUPABASE_URL` is `https://ybmseuuumwiyudwqvzuh.supabase.co`. Open [https://supabase.com/dashboard/project/ybmseuuumwiyudwqvzuh](https://supabase.com/dashboard/project/ybmseuuumwiyudwqvzuh) for Authentication URL configuration. This project does not use an `allowed_users` allowlist.
+![Ship your save card with a JSON lesson, a preview of the live quest, a PIN field, and Ship and Open buttons](docs/images/save-panel.png)
 
-With no Supabase URL configured, the same record stays in this browser under a guest `localStorage` key and the board still runs. A signed-in account uses its own key and does not pick up the guest save. See [Support](docs/support.md#cloud-save) for the environment variables and [Security](docs/security.md) for what that does and does not protect.
-
-**Save** opens a short JSON prompt first. **Continue** reveals the panel. **Not now** leaves the board alone. **Ship your save** on that panel downloads `branchborne-save.json` with no account. The panel shows a short JSON lesson next to a preview of your real quest: the file is one object, `pathwayId` is a key, the pathway text is a string, `score` is a number (your lines of code), and `trophies` is an array. **Open this save** loads a file of that shape back onto the board. An optional PIN is 4–8 letters or digits. The file stores a SHA-256 hash and a salt, never the PIN. It only keeps a casual person from opening the file in the game. Anyone who can edit the JSON can still change their own trophies. A file with no PIN still downloads and imports.
+The same record also stays in this browser. See [Support](docs/support.md#json-save-file) and [Security](docs/security.md).
 
 ## How a match works
 
