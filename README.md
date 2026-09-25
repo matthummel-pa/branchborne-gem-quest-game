@@ -45,7 +45,7 @@ Open [http://127.0.0.1:4173/](http://127.0.0.1:4173/). Pick a pathway, then swap
 
 The published cabinet is [https://gregarious-custard-70cf58.netlify.app](https://gregarious-custard-70cf58.netlify.app).
 
-This repository includes the JSON Save flow. The public site shows that Save screen after this branch is deployed to production. Until that deploy, hard-refresh the live URL and treat the screenshots above as the Save flow in this commit.
+Save on that site opens the JSON side quest, then **Ship your save**. The live page has no email or password field. Hard-refresh if an older cabinet is still on screen.
 
 ## How to play
 
