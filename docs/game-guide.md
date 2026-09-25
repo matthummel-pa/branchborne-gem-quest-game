@@ -179,7 +179,7 @@ A shared link can also reapply Look and Music from its `#gb=` hash. See [Support
 
 ### Ship a JSON file
 
-**Ship your save** downloads `branchborne-save.json`. Before the download, the panel teaches JSON against a preview of this run, not a sample file. The file is one object. `pathwayId` is a key. The pathway text, such as `"frontend"`, is a string. `score` is a number — your lines of code. `trophies` is an array. When the trophy list is long, the preview shows the first trophies and the file keeps the rest.
+**Save** first opens a short JSON prompt. **Continue** opens the save panel. **Not now** closes the prompt and leaves the board as it is. **Ship your save** downloads `branchborne-save.json`. The panel still teaches JSON against a preview of this run, not a sample file. The file is one object. `pathwayId` is a key. The pathway text, such as `"frontend"`, is a string. `score` is a number — your lines of code. `trophies` is an array. When the trophy list is long, the preview shows the first trophies and the file keeps the rest.
 
 **Open this save** reads a file back. The cabinet rejects JSON that is not this save format. After a good load, the board updates and a line confirms what came back, for example “Restored pathway, 3 trophies, 1200 lines of code.” Trophy names on the board come from the cabinet catalog.
 

@@ -1475,6 +1475,38 @@
     };
   }
 
+  /**
+   * Door copy shown before the Save panel. A started quest uses the live
+   * snapshot. An untouched cabinet gets a labeled sample line.
+   */
+  function jsonDoorCopy(save) {
+    const lesson =
+      "A save is a JSON file: one object. A key is a name, and the value sits beside it. Trophies live in an array.";
+    const canonical = canonicalCloudSave(save);
+    const owned = canonical
+      ? canonical.trophies.filter((entry) => TROPHIES.some((trophy) => trophy.id === entry.id))
+      : [];
+    const started = Boolean(
+      canonical && (canonical.pathwayId || canonical.score > 0 || owned.length || canonical.loot.length)
+    );
+    if (!started) {
+      return {
+        sample: true,
+        text: `${lesson} Sample, not your quest yet: pathway frontend, 1200 lines of code, 1 trophy. That line is a sample.`,
+        line: '{ "pathway": "frontend", "score": 1200, "trophies": ["Rubber Duck"] }',
+      };
+    }
+    const trophies = owned.length;
+    const trophyWord = trophies === 1 ? "trophy" : "trophies";
+    const pathway = canonical.pathwayId || "unset";
+    const trophyIds = owned.slice(0, 2).map((entry) => entry.id);
+    return {
+      sample: false,
+      text: `${lesson} This is your game: pathway ${pathway}, ${canonical.score} lines of code, ${trophies} ${trophyWord}.`,
+      line: `{ "pathway": ${JSON.stringify(pathway)}, "score": ${canonical.score}, "trophies": ${JSON.stringify(trophyIds)} }`,
+    };
+  }
+
   function sealPortableSave(save, pin) {
     const problem = pinProblem(pin);
     if (problem) return Promise.resolve({ ok: false, error: problem });
@@ -5120,6 +5152,7 @@
     inspectPortableSave,
     portableSaveLesson,
     portableSaveSummary,
+    jsonDoorCopy,
     sealPortableSave,
     unlockPortableSave,
     playerStorageKey,

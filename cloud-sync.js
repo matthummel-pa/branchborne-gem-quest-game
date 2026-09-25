@@ -129,6 +129,36 @@
       refreshJsonLesson();
     }
 
+    var promptEl = root.querySelector("[data-json-prompt]");
+    var promptCopyEl = root.querySelector("[data-json-prompt-copy]");
+    var promptLineEl = root.querySelector("[data-json-prompt-line]");
+
+    function hideCustomize() {
+      var customize = root.querySelector("[data-customize-panel]");
+      if (!customize) return;
+      customize.hidden = true;
+      customize.setAttribute("hidden", "");
+      root.classList.remove("is-customizing");
+    }
+
+    function hidePrompt() {
+      if (!promptEl) return;
+      promptEl.hidden = true;
+      promptEl.setAttribute("hidden", "");
+    }
+
+    function showPrompt() {
+      if (!promptEl || !window.GitBlocks || typeof window.GitBlocks.jsonDoorCopy !== "function") return;
+      var door = window.GitBlocks.jsonDoorCopy(currentPortableSave());
+      if (promptCopyEl) promptCopyEl.textContent = door.text;
+      if (promptLineEl) promptLineEl.textContent = door.line;
+      hideCustomize();
+      promptEl.hidden = false;
+      promptEl.removeAttribute("hidden");
+      var continueBtn = root.querySelector("[data-json-prompt-continue]");
+      if (continueBtn) continueBtn.focus();
+    }
+
     function togglePanel(forceOpen) {
       if (!panel) return;
       var open = typeof forceOpen === "boolean" ? forceOpen : panel.hidden;
@@ -136,20 +166,41 @@
       if (open) panel.removeAttribute("hidden");
       else panel.setAttribute("hidden", "");
       if (open) {
+        hidePrompt();
         refreshJsonLesson();
-        var customize = root.querySelector("[data-customize-panel]");
-        if (customize) {
-          customize.hidden = true;
-          customize.setAttribute("hidden", "");
-          root.classList.remove("is-customizing");
-        }
+        hideCustomize();
       }
     }
 
-    if (openBtn) openBtn.addEventListener("click", function () { togglePanel(); });
+    if (openBtn) openBtn.addEventListener("click", function () {
+      if (panel && !panel.hidden) {
+        togglePanel(false);
+        return;
+      }
+      if (promptEl && !promptEl.hidden) {
+        hidePrompt();
+        return;
+      }
+      showPrompt();
+    });
     root.querySelectorAll("[data-account-close]").forEach(function (btn) {
       btn.addEventListener("click", function () { togglePanel(false); });
     });
+    root.querySelectorAll("[data-json-prompt-dismiss]").forEach(function (btn) {
+      btn.addEventListener("click", function () { hidePrompt(); });
+    });
+    var promptContinue = root.querySelector("[data-json-prompt-continue]");
+    if (promptContinue) {
+      promptContinue.addEventListener("click", function () { togglePanel(true); });
+    }
+    var customizeBtn = root.querySelector("[data-customize]");
+    if (customizeBtn) customizeBtn.addEventListener("click", hidePrompt);
+    window.addEventListener("keydown", function (event) {
+      if (event.key !== "Escape" || !promptEl || promptEl.hidden) return;
+      event.preventDefault();
+      event.stopPropagation();
+      hidePrompt();
+    }, true);
 
     var downloadBtn = root.querySelector("[data-json-download]");
     if (downloadBtn) {

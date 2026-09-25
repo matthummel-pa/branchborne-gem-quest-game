@@ -35,7 +35,7 @@ If `/api/public-config` is missing, the Save panel says cloud save is off and th
 
 ## JSON save file
 
-**Save → Ship your save** downloads `branchborne-save.json` in this browser. It does not need Supabase. The panel’s JSON lesson and preview are your current quest. **Open this save** puts a file of that shape back on the board.
+**Save** shows a JSON prompt before the form. **Continue** opens **Ship your save**, which downloads `branchborne-save.json` in this browser. **Not now** dismisses the prompt. It does not need Supabase. The panel’s JSON lesson and preview are your current quest. **Open this save** puts a file of that shape back on the board.
 
 - Leave the PIN blank for a file anyone can open in the game.
 - A PIN is 4–8 letters or digits. The file keeps a SHA-256 hash and a salt. The cabinet does not store the PIN.

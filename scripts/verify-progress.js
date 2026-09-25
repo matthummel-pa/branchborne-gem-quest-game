@@ -117,6 +117,17 @@ assert.ok(merged.trophies.some((trophy) => trophy.id === "green-check"));
 assert.ok(merged.loot.some((item) => item.id === "coffee-mug"));
 
 const pin = "24681357";
+const door = gb.jsonDoorCopy(save);
+assert.strictEqual(door.sample, false);
+assert.ok(door.text.includes("one object"));
+assert.ok(door.text.includes("array"));
+assert.ok(door.text.includes("frontend"));
+assert.ok(door.text.includes("your game"));
+const coldDoor = gb.jsonDoorCopy({ pathwayId: null, score: 0, trophies: [], loot: [] });
+assert.strictEqual(coldDoor.sample, true);
+assert.ok(/sample/i.test(coldDoor.text));
+assert.ok(coldDoor.line.includes("Rubber Duck"));
+
 const lesson = gb.portableSaveLesson(save);
 assert.ok(lesson.text.includes("one object"));
 assert.ok(lesson.text.includes("pathwayId"));

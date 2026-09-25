@@ -1063,6 +1063,104 @@ button:disabled {
   display: none !important;
 }
 
+.json-prompt {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  pointer-events: auto;
+}
+
+.json-prompt[hidden] {
+  display: none !important;
+}
+
+.json-prompt-scrim {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: rgba(7, 17, 31, 0.78);
+}
+
+.json-prompt-card {
+  position: relative;
+  z-index: 1;
+  width: min(440px, 100%);
+  max-height: 100%;
+  overflow: auto;
+  padding: 18px 16px 16px;
+  border: 1px solid rgba(196, 156, 72, 0.55);
+  border-radius: 16px;
+  background:
+    radial-gradient(120px 80px at 100% 0%, rgba(79, 143, 212, 0.22), transparent 70%),
+    linear-gradient(180deg, rgba(18, 28, 46, 0.98), rgba(8, 14, 24, 0.98));
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45), inset 0 0 0 1px rgba(79, 143, 212, 0.16);
+  color: var(--paper);
+}
+
+.json-prompt-kicker {
+  margin: 0 0 8px;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #e8c56a;
+}
+
+.json-prompt-mark {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 10px;
+}
+
+.json-prompt-mark span {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  color: #d7e6f8;
+  background: #101a2b;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 8px;
+}
+
+.json-prompt-card h3 {
+  margin: 0 0 8px;
+  font-size: 1.15rem;
+  letter-spacing: -0.02em;
+}
+
+.json-prompt-copy {
+  margin: 0 0 10px;
+  color: #c9d5e4;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.json-prompt-sample {
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #101a2b;
+  color: #9fd0ff;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.json-prompt .row-actions {
+  margin-top: 0;
+}
+
 @media (max-width: 720px) {
   .json-preview {
     max-height: 8rem;
@@ -1071,6 +1169,20 @@ button:disabled {
 
   .json-ship .row-actions button {
     flex: 1 1 100%;
+    min-height: 40px;
+  }
+
+  .json-prompt {
+    padding: 12px;
+  }
+
+  .json-prompt .row-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .json-prompt .row-actions button {
+    width: 100%;
     min-height: 40px;
   }
 }

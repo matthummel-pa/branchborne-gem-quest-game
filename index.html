@@ -173,6 +173,24 @@
             <button type="button" data-customize-close>Done</button>
           </div>
         </div>
+        <div class="json-prompt" data-json-prompt hidden>
+          <button type="button" class="json-prompt-scrim" data-json-prompt-dismiss aria-label="Not now"></button>
+          <div class="json-prompt-card" role="dialog" aria-modal="true" aria-labelledby="json-prompt-title">
+            <p class="json-prompt-kicker">Side quest · JSON</p>
+            <div class="json-prompt-mark" aria-hidden="true">
+              <span>{ }</span>
+              <span>key: value</span>
+              <span>[ trophies ]</span>
+            </div>
+            <h3 id="json-prompt-title">Pack this quest</h3>
+            <p class="json-prompt-copy" data-json-prompt-copy></p>
+            <pre class="json-prompt-sample" data-json-prompt-line></pre>
+            <div class="row-actions wrap">
+              <button type="button" data-json-prompt-continue>Continue</button>
+              <button type="button" class="ghost" data-json-prompt-dismiss>Not now</button>
+            </div>
+          </div>
+        </div>
         <div class="customize-panel account-panel" data-account-panel hidden>
           <div class="customize-head">
             <h3>Save progress</h3>
