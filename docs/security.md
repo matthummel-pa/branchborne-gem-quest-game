@@ -11,7 +11,7 @@ Branchborne Gem Quest is a static cabinet. Scores and trophies are gameplay reco
 - **HTML injection.** Displayed names, quest text, trophy labels, and the commit log are inserted as text. Custom backdrops accept colors and gradients, not `url()`, and a share link does not carry an image or audio URL. Remote images and music that you type in yourself must be a single `https` URL.
 - **Framing and headers.** `netlify.toml` sends a content security policy, `X-Frame-Options: DENY`, `nosniff`, and a strict referrer policy. There is no open redirect. Magic-link and signup redirects stay on this cabinet's origin and path.
 
-`public.branchborne_players` is an older table this cabinet does not use. On project `noxzzvbmcckzmaohyahe` the follow-up migration has been applied: anonymous grants and policies on that table are gone, so the Data API cannot read or write those rows. The rows are still in the database for the table owner.
+The cabinet uses Supabase project `ybmseuuumwiyudwqvzuh` ([dashboard](https://supabase.com/dashboard/project/ybmseuuumwiyudwqvzuh)). `public.branchborne_players` is not on that project. Saves live only in `public.branchborne_saves`.
 
 ## What a determined player can still change
 

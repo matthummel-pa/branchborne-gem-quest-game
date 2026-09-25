@@ -80,7 +80,7 @@ The repository has no test runner. `node scripts/verify-progress.js` plays a see
 
 ## Netlify
 
-`netlify.toml` publishes `.`, bundles `netlify/functions` with esbuild, and runs `node scripts/security-check.js` as the build command. There is no bundler for the cabinet. `public-config.ts` reads `Netlify.env.get` for `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` (falling back to `SUPABASE_ANON_KEY`). Names and where to set them are in [Support](support.md#cloud-save). `.env.example` lists the same names with empty placeholders.
+`netlify.toml` publishes `.`, bundles `netlify/functions` with esbuild, and runs `node scripts/security-check.js` as the build command. There is no bundler for the cabinet. `public-config.ts` reads `Netlify.env.get` for `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` (falling back to `SUPABASE_ANON_KEY`). Names and where to set them are in [Support](support.md#cloud-save). `.env.example` sets `SUPABASE_URL` to `https://ybmseuuumwiyudwqvzuh.supabase.co` and leaves the key names empty.
 
 Publish when the Netlify CLI is logged in:
 
@@ -94,8 +94,6 @@ npx netlify deploy --prod --dir .
 
 ## Supabase
 
-The live schema is project ref `noxzzvbmcckzmaohyahe`, table `public.branchborne_saves`. The migration `supabase/migrations/20260924201136_extend_branchborne_saves.sql` adds quest columns and replaces the policies so `authenticated` can select, insert, update, and delete only where `(select auth.uid()) = user_id`. `anon` has no grants on that table. The browser uses the publishable key. Do not ship a service-role key.
+The live schema is project ref `ybmseuuumwiyudwqvzuh`. `SUPABASE_URL` is `https://ybmseuuumwiyudwqvzuh.supabase.co`. Open [https://supabase.com/dashboard/project/ybmseuuumwiyudwqvzuh](https://supabase.com/dashboard/project/ybmseuuumwiyudwqvzuh) for Authentication URL configuration. The table is `public.branchborne_saves`. `supabase/migrations/20260925040125_create_branchborne_saves.sql` creates that table when it is missing. `supabase/migrations/20260924201136_extend_branchborne_saves.sql` adds quest columns and replaces the policies so `authenticated` can select, insert, update, and delete only where `(select auth.uid()) = user_id`. `anon` has no grants on that table. `supabase/migrations/20260924203000_player_rls.sql` adds a trigger that sets `user_id` from `auth.uid()`. The browser uses the publishable key. Do not ship a service-role key.
 
-`public.branchborne_players` is an older anonymous table on the same project. This cabinet does not read or write it. Its policies still allow `anon` to select and update every row (`using (true)`). Leave it in place until you confirm nothing else depends on it, then tighten or drop it in the Supabase SQL editor.
-
-`public.enforce_allowlist` blocks new `auth.users` rows whose email is not in `public.allowed_users`. That trigger protects the rest of this project. Do not drop it to open the game. Add a player email to `allowed_users`, or point the cabinet at another project.
+This project does not have `public.branchborne_players` or an `allowed_users` allowlist trigger. Guest play still uses the browser `localStorage` fallback.

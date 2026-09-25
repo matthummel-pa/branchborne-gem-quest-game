@@ -21,15 +21,15 @@ The browser asks `GET /api/public-config` first, then `./supabase-public.json`. 
 
 | Variable | Purpose |
 | --- | --- |
-| `SUPABASE_URL` | Project URL, `https://<project-ref>.supabase.co` |
+| `SUPABASE_URL` | `https://ybmseuuumwiyudwqvzuh.supabase.co` |
 | `SUPABASE_PUBLISHABLE_KEY` | Publishable key (`sb_publishable_...`). This is the key the browser uses. |
 | `SUPABASE_ANON_KEY` | Legacy anon key. The function uses it only when `SUPABASE_PUBLISHABLE_KEY` is unset. |
 
 Do not set a service-role or secret key in these variables. The function returns only the public URL and publishable key, and Row Level Security on `public.branchborne_saves` limits each signed-in user to their own row.
 
-This release uses the existing Supabase project `noxzzvbmcckzmaohyahe` (Matt Hummel’s org). Auth sign-ups on that project are limited to emails already listed in `public.allowed_users`. A new player email fails with “Sign-ups are restricted to invited users” until that address is added there, or until the cabinet points at a different Supabase project that does not use that allowlist. Magic links and password sign-up both create an `auth.users` row, so both hit the same check.
+The linked Netlify site is [gregarious-custard-70cf58](https://gregarious-custard-70cf58.netlify.app). `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` are set there. The publishable key is not in git.
 
-After a Netlify URL exists, add it under Authentication → URL Configuration as a redirect URL, along with `http://127.0.0.1:4173` if you test magic links locally. The link must land on the cabinet path, not a different site.
+This release uses Supabase project `ybmseuuumwiyudwqvzuh` (`https://ybmseuuumwiyudwqvzuh.supabase.co`). Open [https://supabase.com/dashboard/project/ybmseuuumwiyudwqvzuh](https://supabase.com/dashboard/project/ybmseuuumwiyudwqvzuh) for Authentication → URL Configuration. Add `https://gregarious-custard-70cf58.netlify.app` and `http://127.0.0.1:4173` as redirect URLs so magic links land on the cabinet. This project has no `public.allowed_users` table and no `public.enforce_allowlist` trigger, so a new player email can sign up. The older project `noxzzvbmcckzmaohyahe` still has that trigger; leave it in place. Guest progress still stays in `localStorage` when nobody is signed in.
 
 If `/api/public-config` is missing, the Save panel says cloud save is off and the quest stays in this browser.
 

@@ -34,6 +34,8 @@ Open [http://127.0.0.1:4173/](http://127.0.0.1:4173/). Pick a pathway, then swap
 
 ![Save progress panel with email, password, sign in, create account, and email me a link](docs/images/save-panel.png)
 
+Cloud save uses Supabase project `ybmseuuumwiyudwqvzuh`. `SUPABASE_URL` is `https://ybmseuuumwiyudwqvzuh.supabase.co`. Open [https://supabase.com/dashboard/project/ybmseuuumwiyudwqvzuh](https://supabase.com/dashboard/project/ybmseuuumwiyudwqvzuh) for Authentication URL configuration. This project does not use an `allowed_users` allowlist.
+
 With no Supabase URL configured, the same record stays in this browser under a guest `localStorage` key and the board still runs. A signed-in account uses its own key and does not pick up the guest save. See [Support](docs/support.md#cloud-save) for the environment variables and [Security](docs/security.md) for what that does and does not protect.
 
 ## How a match works
