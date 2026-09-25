@@ -176,3 +176,11 @@ The same record is written to this browser. Guest play and a signed-in account d
 If cloud save is off, play continues from the guest key. Signing in loads that account's cloud row and does not import the guest save. Best LOC is kept per scope.
 
 A shared link can also reapply Look and Music from its `#gb=` hash. See [Support](support.md) to clear local data or fix a sign-in that never returns.
+
+### Ship a JSON file
+
+**Ship your save** downloads `branchborne-save.json`. Before the download, the panel teaches JSON against a preview of this run, not a sample file. The file is one object. `pathwayId` is a key. The pathway text, such as `"frontend"`, is a string. `score` is a number — your lines of code. `trophies` is an array. When the trophy list is long, the preview shows the first trophies and the file keeps the rest.
+
+**Open this save** reads a file back. The cabinet rejects JSON that is not this save format. After a good load, the board updates and a line confirms what came back, for example “Restored pathway, 3 trophies, 1200 lines of code.” Trophy names on the board come from the cabinet catalog.
+
+The PIN field takes 4–8 letters or digits, or you can leave it blank. A blank PIN still downloads and imports. A set PIN is required again when that file is opened here. The file holds a SHA-256 hash and a salt, not the PIN. That stops a casual person from opening the file in the game. Anyone who can edit the file can still change their own trophies. It is not server-side security.

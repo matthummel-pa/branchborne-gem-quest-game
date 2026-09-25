@@ -1280,6 +1280,251 @@
     };
   }
 
+  const PORTABLE_SAVE_KEYS = [
+    "pathwayId",
+    "level",
+    "questTitle",
+    "score",
+    "moves",
+    "phase",
+    "status",
+    "bestScore",
+    "trophies",
+    "loot",
+    "skills",
+    "challengeIndex",
+    "levelScore",
+    "graduated",
+    "classExpert",
+    "challengesCleared",
+    "updatedAt",
+  ];
+
+  function pinProblem(pin) {
+    if (pin == null || pin === "") return "";
+    if (typeof pin !== "string" || !/^[A-Za-z0-9]{4,8}$/.test(pin)) {
+      return "Use 4–8 letters or digits, or leave the PIN blank.";
+    }
+    return "";
+  }
+
+  function bytesToHex(bytes) {
+    let hex = "";
+    for (let i = 0; i < bytes.length; i += 1) {
+      hex += bytes[i].toString(16).padStart(2, "0");
+    }
+    return hex;
+  }
+
+  function webCrypto() {
+    const cryptoApi = typeof globalThis !== "undefined" ? globalThis.crypto : null;
+    if (!cryptoApi || !cryptoApi.subtle || typeof cryptoApi.getRandomValues !== "function") return null;
+    return cryptoApi;
+  }
+
+  function sha256Hex(text) {
+    const cryptoApi = webCrypto();
+    if (!cryptoApi) return Promise.reject(new Error("crypto.subtle unavailable"));
+    const bytes = new TextEncoder().encode(text);
+    return cryptoApi.subtle.digest("SHA-256", bytes).then((digest) => bytesToHex(new Uint8Array(digest)));
+  }
+
+  function hashesEqual(left, right) {
+    if (typeof left !== "string" || typeof right !== "string" || left.length !== right.length) return false;
+    let diff = 0;
+    for (let i = 0; i < left.length; i += 1) diff |= left.charCodeAt(i) ^ right.charCodeAt(i);
+    return diff === 0;
+  }
+
+  function readPinRecord(input) {
+    if (!Object.prototype.hasOwnProperty.call(input, "pin") || input.pin == null) return { pin: null };
+    const record = input.pin;
+    const keys = record && typeof record === "object" && !Array.isArray(record) ? Object.keys(record) : null;
+    const allowed = keys && keys.length === 3 && keys.every((key) => key === "alg" || key === "salt" || key === "hash");
+    if (
+      !allowed ||
+      record.alg !== "SHA-256" ||
+      typeof record.salt !== "string" ||
+      !/^[0-9a-f]{32}$/.test(record.salt) ||
+      typeof record.hash !== "string" ||
+      !/^[0-9a-f]{64}$/.test(record.hash) ||
+      record.hash === record.salt
+    ) {
+      return {
+        error: "That file's PIN record is not a hash and salt. Ship the save again from this cabinet.",
+      };
+    }
+    return { pin: { alg: "SHA-256", salt: record.salt, hash: record.hash } };
+  }
+
+  function portableFieldError(input) {
+    if (!input || typeof input !== "object" || Array.isArray(input)) {
+      return "That file is not a Branchborne save. It needs to be one JSON object.";
+    }
+    const present = PORTABLE_SAVE_KEYS.filter((key) => Object.prototype.hasOwnProperty.call(input, key));
+    if (!present.length) {
+      return "That file is not a Branchborne save. Ship one from this cabinet first.";
+    }
+    if (Object.prototype.hasOwnProperty.call(input, "pathwayId")) {
+      const pathwayId = input.pathwayId;
+      if (pathwayId != null && (typeof pathwayId !== "string" || !PATHWAY_BY_ID[pathwayId])) {
+        return "That file is not a Branchborne save. The pathway is not one this cabinet knows.";
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(input, "questTitle") && input.questTitle != null && typeof input.questTitle !== "string") {
+      return "That file is not a Branchborne save. The quest title needs to be text.";
+    }
+    const numbers = ["score", "moves", "bestScore", "level", "challengeIndex", "levelScore", "challengesCleared"];
+    for (let i = 0; i < numbers.length; i += 1) {
+      const key = numbers[i];
+      if (!Object.prototype.hasOwnProperty.call(input, key)) continue;
+      if (typeof input[key] !== "number" || !Number.isFinite(input[key])) {
+        return "That file is not a Branchborne save. Lines of code, moves, and scores need to be numbers.";
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(input, "phase") && input.phase !== "path" && input.phase !== "endgame") {
+      return "That file is not a Branchborne save. Phase needs to be path or endgame.";
+    }
+    if (Object.prototype.hasOwnProperty.call(input, "status") && SAVE_STATUSES.indexOf(input.status) < 0) {
+      return "That file is not a Branchborne save. The status is not one this cabinet uses.";
+    }
+    const lists = ["trophies", "loot", "skills"];
+    for (let i = 0; i < lists.length; i += 1) {
+      const key = lists[i];
+      if (Object.prototype.hasOwnProperty.call(input, key) && !Array.isArray(input[key])) {
+        return "That file is not a Branchborne save. Trophies, loot, and skills need to be lists.";
+      }
+    }
+    const flags = ["graduated", "classExpert"];
+    for (let i = 0; i < flags.length; i += 1) {
+      const key = flags[i];
+      if (Object.prototype.hasOwnProperty.call(input, key) && typeof input[key] !== "boolean") {
+        return "That file is not a Branchborne save. Graduated and class expert need to be true or false.";
+      }
+    }
+    if (Object.prototype.hasOwnProperty.call(input, "updatedAt") && input.updatedAt != null && typeof input.updatedAt !== "string") {
+      return "That file is not a Branchborne save. The timestamp needs to be text.";
+    }
+    return "";
+  }
+
+  /** Accept only the camelCase progress object this cabinet downloads. */
+  function inspectPortableSave(input) {
+    const error = portableFieldError(input);
+    if (error) return { ok: false, error };
+    const pinRecord = readPinRecord(input);
+    if (pinRecord.error) return { ok: false, error: pinRecord.error };
+    const save = canonicalCloudSave(input);
+    if (!save) return { ok: false, error: "That file is not a Branchborne save. Ship one from this cabinet first." };
+    return { ok: true, save, pin: pinRecord.pin };
+  }
+
+  function catalogCount(list, catalog) {
+    return (list || []).filter((entry) => catalog.some((item) => item.id === entry.id)).length;
+  }
+
+  function portableSaveSummary(save) {
+    const canonical = canonicalCloudSave(save);
+    if (!canonical) return "That file is not a Branchborne save. Ship one from this cabinet first.";
+    const trophies = catalogCount(canonical.trophies, TROPHIES);
+    const trophyWord = trophies === 1 ? "trophy" : "trophies";
+    const pathway = canonical.pathwayId ? "pathway, " : "";
+    return `Restored ${pathway}${trophies} ${trophyWord}, ${canonical.score} lines of code.`;
+  }
+
+  /**
+   * Lesson copy plus a pretty-printed slice of the player's real save.
+   * Trophy rows in the preview are ids only; the trophy case uses catalog names.
+   */
+  function portableSaveLesson(save) {
+    const canonical = canonicalCloudSave(save);
+    if (!canonical) {
+      return {
+        text: "This file is one object. Ship a save after the cabinet has a quest to pack.",
+        preview: "",
+      };
+    }
+    const trophyPreview = canonical.trophies.slice(0, 2).map((entry) => ({ id: entry.id }));
+    const preview = {
+      pathwayId: canonical.pathwayId,
+      questTitle: canonical.questTitle,
+      score: canonical.score,
+      moves: canonical.moves,
+      phase: canonical.phase,
+      bestScore: canonical.bestScore,
+      trophies: trophyPreview,
+      loot: canonical.loot.slice(0, 2).map((entry) => ({ id: entry.id })),
+      skills: canonical.skills.slice(0, 2).map((entry) => ({ id: entry.id })),
+    };
+    const stringLine = canonical.pathwayId
+      ? `A name like pathwayId is a key. "${canonical.pathwayId}" is a string.`
+      : "A name like pathwayId is a key. Yours is empty until you pick a pathway, so there is no string there yet.";
+    const more =
+      canonical.trophies.length > trophyPreview.length
+        ? ` The preview shows the first ${trophyPreview.length} trophies. The file keeps all ${canonical.trophies.length}.`
+        : "";
+    return {
+      text: [
+        "The preview below is your real save.",
+        "This file is one object, one bundle inside curly braces.",
+        stringLine,
+        `score is a number — your lines of code (${canonical.score}).`,
+        `trophies is an array, a list inside square brackets.${more}`,
+      ].join(" "),
+      preview: JSON.stringify(preview, null, 2),
+    };
+  }
+
+  function sealPortableSave(save, pin) {
+    const problem = pinProblem(pin);
+    if (problem) return Promise.resolve({ ok: false, error: problem });
+    const canonical = canonicalCloudSave(save);
+    if (!canonical) return Promise.resolve({ ok: false, error: "Nothing to ship yet." });
+    const file = Object.assign({}, canonical);
+    const secret = typeof pin === "string" ? pin : "";
+    if (!secret) return Promise.resolve({ ok: true, file });
+    const cryptoApi = webCrypto();
+    if (!cryptoApi) {
+      return Promise.resolve({ ok: false, error: "This browser cannot hash a PIN, so leave the PIN blank to ship the file." });
+    }
+    const saltBytes = new Uint8Array(16);
+    cryptoApi.getRandomValues(saltBytes);
+    const salt = bytesToHex(saltBytes);
+    return sha256Hex(`${salt}\n${secret}`).then((hash) => {
+      if (!hash || hash === secret || salt === secret) {
+        return { ok: false, error: "Could not seal that PIN. Try another, or leave it blank." };
+      }
+      file.pin = { alg: "SHA-256", salt, hash };
+      return { ok: true, file };
+    });
+  }
+
+  function unlockPortableSave(input, pin) {
+    const inspected = inspectPortableSave(input);
+    if (!inspected.ok) return Promise.resolve(inspected);
+    if (!inspected.pin) {
+      return Promise.resolve({
+        ok: true,
+        save: inspected.save,
+        summary: portableSaveSummary(inspected.save),
+      });
+    }
+    const secret = typeof pin === "string" ? pin : "";
+    if (!secret) {
+      return Promise.resolve({ ok: false, error: "This save has a PIN. Enter it to open the file in the game." });
+    }
+    return sha256Hex(`${inspected.pin.salt}\n${secret}`).then((hash) => {
+      if (!hashesEqual(hash, inspected.pin.hash)) {
+        return { ok: false, error: "That PIN does not open this save." };
+      }
+      return {
+        ok: true,
+        save: inspected.save,
+        summary: portableSaveSummary(inspected.save),
+      };
+    });
+  }
+
   function knownSkill(id) {
     const lessons = CURRICULUM.concat(ENDGAME_CHALLENGES);
     for (let i = 0; i < lessons.length; i += 1) {
@@ -4872,6 +5117,11 @@
     canonicalCloudSave,
     toPlayerSaveRow,
     mergeCloudSaves,
+    inspectPortableSave,
+    portableSaveLesson,
+    portableSaveSummary,
+    sealPortableSave,
+    unlockPortableSave,
     playerStorageKey,
     createGame,
     createSfxEngine,

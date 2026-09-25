@@ -17,6 +17,8 @@ The cabinet uses Supabase project `ybmseuuumwiyudwqvzuh` ([dashboard](https://su
 
 The match is scored in the browser. A player who edits their own request can raise their lines of code, mark their own trophies, or change their own quest fields. Row Level Security does not make the score authoritative. It only stops that player from reading or writing someone else's row.
 
+A downloaded `branchborne-save.json` can include a PIN hash and a salt. That only stops someone who has the file from opening it in this cabinet without the PIN. It is not server-side protection. Anyone who can edit the JSON can change their own trophies, lines of code, or remove the PIN record. The raw PIN is not written into the file, `localStorage`, or the commit log.
+
 Look and music preferences are also local. A shared `#gb=` link can restyle the cabinet with a gradient. It cannot run script.
 
 ## How to report a problem

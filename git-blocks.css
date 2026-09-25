@@ -1003,6 +1003,74 @@ button:disabled {
   margin-top: 8px;
 }
 
+.json-ship {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.json-ship h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  letter-spacing: -0.02em;
+}
+
+.json-ship .customize-hint {
+  margin: 0;
+}
+
+.json-ship .field {
+  margin-bottom: 0;
+}
+
+.json-lesson {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #c9d5e4;
+}
+
+.json-preview {
+  margin: 0;
+  max-height: 11rem;
+  overflow: auto;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #101a2b;
+  color: #d7e6f8;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.json-ship input[type="file"] {
+  max-width: 100%;
+  font: inherit;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.json-ship [hidden] {
+  display: none !important;
+}
+
+@media (max-width: 720px) {
+  .json-preview {
+    max-height: 8rem;
+    font-size: 10px;
+  }
+
+  .json-ship .row-actions button {
+    flex: 1 1 100%;
+    min-height: 40px;
+  }
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

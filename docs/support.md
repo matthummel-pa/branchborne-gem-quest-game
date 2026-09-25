@@ -33,6 +33,16 @@ This release uses Supabase project `ybmseuuumwiyudwqvzuh` (`https://ybmseuuumwiy
 
 If `/api/public-config` is missing, the Save panel says cloud save is off and the quest stays in this browser.
 
+## JSON save file
+
+**Save → Ship your save** downloads `branchborne-save.json` in this browser. It does not need Supabase. The panel’s JSON lesson and preview are your current quest. **Open this save** puts a file of that shape back on the board.
+
+- Leave the PIN blank for a file anyone can open in the game.
+- A PIN is 4–8 letters or digits. The file keeps a SHA-256 hash and a salt. The cabinet does not store the PIN.
+- “That PIN does not open this save” means the hash did not match. The board stays as it was.
+- “That file is not a Branchborne save” means the JSON is not this cabinet’s progress object.
+- Editing the file can change your own trophies. The PIN is not server-side security. See [Security](security.md).
+
 ## Reset local progress
 
 Quest progress, trophies, and loot are stored for this origin, along with best LOC and look/music. Guest play and each signed-in account use different keys, so one player does not read another's save on a shared browser.

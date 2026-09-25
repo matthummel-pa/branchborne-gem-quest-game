@@ -116,8 +116,62 @@ assert.ok(merged.trophies.some((trophy) => trophy.id === "rubber-duck"));
 assert.ok(merged.trophies.some((trophy) => trophy.id === "green-check"));
 assert.ok(merged.loot.some((item) => item.id === "coffee-mug"));
 
-console.log(
-  "verify-progress ok",
-  save.score + " LOC",
-  save.trophies.map((trophy) => trophy.id).join(", ")
-);
+const pin = "24681357";
+const lesson = gb.portableSaveLesson(save);
+assert.ok(lesson.text.includes("one object"));
+assert.ok(lesson.text.includes("pathwayId"));
+assert.ok(lesson.text.includes('"frontend"'));
+assert.ok(lesson.text.includes("string"));
+assert.ok(lesson.text.includes("lines of code"));
+assert.ok(lesson.text.includes("trophies"));
+assert.ok(lesson.text.includes("array"));
+assert.ok(lesson.preview.includes('"pathwayId": "frontend"'));
+assert.ok(lesson.preview.includes('"score":'));
+assert.ok(!lesson.preview.includes("Rubber Duck"));
+
+const badFile = gb.inspectPortableSave({ hello: "world" });
+assert.strictEqual(badFile.ok, false);
+assert.ok(/not a Branchborne save/i.test(badFile.error));
+assert.strictEqual(gb.inspectPortableSave({ score: "lots", trophies: [] }).ok, false);
+assert.strictEqual(gb.inspectPortableSave({ score: 1, trophies: [], pin: pin }).ok, false);
+
+gb.sealPortableSave(save, pin)
+  .then((sealed) => {
+    assert.strictEqual(sealed.ok, true);
+    assert.strictEqual(sealed.file.pathwayId, "frontend");
+    assert.ok(Array.isArray(sealed.file.trophies));
+    assert.notStrictEqual(sealed.file.pin.hash, pin);
+    assert.notStrictEqual(sealed.file.pin.salt, pin);
+    assert.strictEqual(sealed.file.pin.alg, "SHA-256");
+    assert.ok(!JSON.stringify(sealed.file).includes(JSON.stringify(pin)));
+    const stored = gb.canonicalCloudSave(sealed.file);
+    assert.strictEqual(Object.prototype.hasOwnProperty.call(stored, "pin"), false);
+    return gb.unlockPortableSave(sealed.file, "0000").then((wrong) => {
+      assert.strictEqual(wrong.ok, false);
+      assert.ok(/PIN does not open/i.test(wrong.error));
+      return gb.unlockPortableSave(sealed.file, pin);
+    }).then((opened) => {
+      assert.strictEqual(opened.ok, true);
+      assert.strictEqual(opened.save.pathwayId, "frontend");
+      assert.ok(opened.summary.includes("pathway"));
+      assert.ok(opened.summary.includes("lines of code"));
+      return gb.sealPortableSave(save, "");
+    });
+  })
+  .then((openFile) => {
+    assert.strictEqual(openFile.ok, true);
+    assert.strictEqual(openFile.file.pin, undefined);
+    return gb.unlockPortableSave(openFile.file, "");
+  })
+  .then((openedBlank) => {
+    assert.strictEqual(openedBlank.ok, true);
+    console.log(
+      "verify-progress ok",
+      save.score + " LOC",
+      save.trophies.map((trophy) => trophy.id).join(", ")
+    );
+  })
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });

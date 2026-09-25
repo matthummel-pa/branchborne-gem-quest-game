@@ -54,6 +54,81 @@
       }
     }
 
+    var jsonStatusEl = root.querySelector("[data-json-status]");
+    var jsonLessonEl = root.querySelector("[data-json-lesson]");
+    var jsonPreviewEl = root.querySelector("[data-json-preview]");
+    var jsonPinInput = root.querySelector("[data-json-pin]");
+    var jsonFileInput = root.querySelector("[data-json-file]");
+    var jsonImportPinField = root.querySelector("[data-json-import-pin-field]");
+    var jsonImportPin = root.querySelector("[data-json-import-pin]");
+    var pendingPortable = null;
+    var pendingNeedsPin = false;
+
+    function setJsonStatus(text) {
+      if (jsonStatusEl) jsonStatusEl.textContent = text ? String(text).slice(0, 220) : "";
+    }
+
+    function currentPortableSave() {
+      if (!game || typeof game.snapshot !== "function") return null;
+      var snap = game.snapshot();
+      var stored = typeof root._branchborneReadProgress === "function" ? root._branchborneReadProgress() : null;
+      var best = stored && stored.bestScore ? stored.bestScore : 0;
+      var lines = snap && snap.linesOfCode ? snap.linesOfCode : 0;
+      return window.GitBlocks.cloudSaveFromSnapshot(snap, Math.max(best, lines));
+    }
+
+    function refreshJsonLesson() {
+      if (!window.GitBlocks || typeof window.GitBlocks.portableSaveLesson !== "function") return;
+      var lesson = window.GitBlocks.portableSaveLesson(currentPortableSave());
+      if (jsonLessonEl) jsonLessonEl.textContent = lesson.text;
+      if (jsonPreviewEl) jsonPreviewEl.textContent = lesson.preview;
+    }
+
+    function clearImportPin() {
+      if (jsonImportPin) jsonImportPin.value = "";
+    }
+
+    function showImportPin(show) {
+      pendingNeedsPin = Boolean(show);
+      if (!jsonImportPinField) return;
+      jsonImportPinField.hidden = !show;
+      if (show) jsonImportPinField.removeAttribute("hidden");
+      else jsonImportPinField.setAttribute("hidden", "");
+      if (!show) clearImportPin();
+    }
+
+    function downloadJson(filename, value) {
+      var blob = new Blob([JSON.stringify(value, null, 2) + "\n"], { type: "application/json" });
+      var url = URL.createObjectURL(blob);
+      var link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      link.rel = "noopener";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+    }
+
+    function applyPortableSave(result) {
+      if (!result || !result.ok) {
+        setJsonStatus(result && result.error ? result.error : "That file is not a Branchborne save. Ship one from this cabinet first.");
+        return;
+      }
+      if (!game || typeof game.restoreCloudSave !== "function" || !game.restoreCloudSave(result.save)) {
+        setJsonStatus("That file is not a Branchborne save. Ship one from this cabinet first.");
+        return;
+      }
+      if (typeof root._branchborneRemember === "function") root._branchborneRemember(result.save);
+      if (typeof root._branchborneCloudPush === "function") root._branchborneCloudPush(result.save, "pause");
+      pendingPortable = null;
+      pendingNeedsPin = false;
+      showImportPin(false);
+      if (jsonFileInput) jsonFileInput.value = "";
+      setJsonStatus(result.summary || "Restored this save.");
+      refreshJsonLesson();
+    }
+
     function togglePanel(forceOpen) {
       if (!panel) return;
       var open = typeof forceOpen === "boolean" ? forceOpen : panel.hidden;
@@ -61,6 +136,7 @@
       if (open) panel.removeAttribute("hidden");
       else panel.setAttribute("hidden", "");
       if (open) {
+        refreshJsonLesson();
         var customize = root.querySelector("[data-customize-panel]");
         if (customize) {
           customize.hidden = true;
@@ -74,6 +150,86 @@
     root.querySelectorAll("[data-account-close]").forEach(function (btn) {
       btn.addEventListener("click", function () { togglePanel(false); });
     });
+
+    var downloadBtn = root.querySelector("[data-json-download]");
+    if (downloadBtn) {
+      downloadBtn.addEventListener("click", function () {
+        var pin = jsonPinInput ? jsonPinInput.value : "";
+        if (jsonPinInput) jsonPinInput.value = "";
+        var save = currentPortableSave();
+        window.GitBlocks.sealPortableSave(save, pin).then(function (result) {
+          if (!result.ok) {
+            setJsonStatus(result.error);
+            return;
+          }
+          downloadJson("branchborne-save.json", result.file);
+          setJsonStatus(result.file.pin
+            ? "Shipped branchborne-save.json. The file has a PIN hash, not the PIN."
+            : "Shipped branchborne-save.json. This one has no PIN.");
+        }).catch(function () {
+          setJsonStatus("Could not ship that save.");
+        });
+      });
+    }
+
+    if (jsonFileInput) {
+      jsonFileInput.addEventListener("change", function () {
+        pendingPortable = null;
+        showImportPin(false);
+        var file = jsonFileInput.files && jsonFileInput.files[0];
+        if (!file) return;
+        if (file.size > 200000) {
+          setJsonStatus("That file is too big to be a Branchborne save.");
+          jsonFileInput.value = "";
+          return;
+        }
+        var reader = new FileReader();
+        reader.onload = function () {
+          var parsed;
+          try {
+            parsed = JSON.parse(String(reader.result || ""));
+          } catch (_err) {
+            setJsonStatus("That file is not JSON. Ship a save from this cabinet first.");
+            return;
+          }
+          var inspected = window.GitBlocks.inspectPortableSave(parsed);
+          if (!inspected.ok) {
+            setJsonStatus(inspected.error);
+            return;
+          }
+          pendingPortable = parsed;
+          if (inspected.pin) {
+            showImportPin(true);
+            setJsonStatus("This save has a PIN. Enter it, then open the file in the game.");
+            return;
+          }
+          setJsonStatus("This save has no PIN. Open it to restore the quest.");
+        };
+        reader.onerror = function () {
+          setJsonStatus("That file could not be read.");
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    var importBtn = root.querySelector("[data-json-import]");
+    if (importBtn) {
+      importBtn.addEventListener("click", function () {
+        if (!pendingPortable) {
+          setJsonStatus("Choose a branchborne-save.json file first.");
+          return;
+        }
+        var pin = pendingNeedsPin && jsonImportPin ? jsonImportPin.value : "";
+        clearImportPin();
+        window.GitBlocks.unlockPortableSave(pendingPortable, pin).then(function (result) {
+          applyPortableSave(result);
+        }).catch(function () {
+          setJsonStatus("That file could not be opened.");
+        });
+      });
+    }
+
+    refreshJsonLesson();
 
     function redirectTo() {
       return location.origin + location.pathname;

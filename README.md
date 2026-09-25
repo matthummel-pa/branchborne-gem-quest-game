@@ -38,6 +38,8 @@ Cloud save uses Supabase project `ybmseuuumwiyudwqvzuh`. `SUPABASE_URL` is `http
 
 With no Supabase URL configured, the same record stays in this browser under a guest `localStorage` key and the board still runs. A signed-in account uses its own key and does not pick up the guest save. See [Support](docs/support.md#cloud-save) for the environment variables and [Security](docs/security.md) for what that does and does not protect.
 
+**Ship your save** on that same panel downloads `branchborne-save.json` with no account. The panel shows a short JSON lesson next to a preview of your real quest: the file is one object, `pathwayId` is a key, the pathway text is a string, `score` is a number (your lines of code), and `trophies` is an array. **Open this save** loads a file of that shape back onto the board. An optional PIN is 4–8 letters or digits. The file stores a SHA-256 hash and a salt, never the PIN. It only keeps a casual person from opening the file in the game. Anyone who can edit the JSON can still change their own trophies. A file with no PIN still downloads and imports.
+
 ## How a match works
 
 The board is 8×8. Click a gem, then an adjacent gem, or drag between neighbors. Three or more of the same gem in a row or column clear, the stack falls, and cascades keep writing **lines of code** (LOC). The first quest asks for 600 LOC. Hint and Shuffle are on the side when the board gets stuck. A live side quest, with a short dev tip, sits beside the board.

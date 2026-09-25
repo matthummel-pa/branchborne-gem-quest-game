@@ -76,7 +76,7 @@ That prints the title, an 8×8 board with match length 3, a playing snapshot on 
 
 Useful exports include `createGame`, `CURRICULUM`, `PATHWAY_CLASSES`, `TROPHIES`, `LOOT_ITEMS`, `ENDGAME_CHALLENGES`, `findMatches`, `findHint`, `scoreMatch`, `goalForLevel`, and `movesForLevel`. `createGame({ random })` accepts a deterministic `random()` so a check does not depend on `Math.random`.
 
-The repository has no test runner. `node scripts/verify-progress.js` plays a seeded Frontend Mage board until the Rubber Duck trophy drops, pauses, builds a `branchborne_saves` row, restores it into a second game, and checks that a merge keeps the newer quest plus both trophy lists.
+The repository has no test runner. `node scripts/verify-progress.js` plays a seeded Frontend Mage board until the Rubber Duck trophy drops, pauses, builds a `branchborne_saves` row, restores it into a second game, and checks that a merge keeps the newer quest plus both trophy lists. The same script seals that save with a PIN, checks the file stores a SHA-256 hash and salt rather than the PIN, rejects a file that is not this save format, and refuses a wrong PIN. `sealPortableSave`, `unlockPortableSave`, `inspectPortableSave`, and `portableSaveLesson` are the JSON download helpers. The Save panel in `cloud-sync.js` calls them. Cloud sign-in is unchanged.
 
 ## Netlify
 

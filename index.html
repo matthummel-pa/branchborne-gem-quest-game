@@ -195,6 +195,32 @@
             </div>
           </form>
           <p class="customize-hint" data-account-user hidden></p>
+          <section class="json-ship" data-json-ship>
+            <h4>Ship your save</h4>
+            <p class="customize-hint">Export this quest the way you would export a repo. The download is named branchborne-save.json and uses the same progress the cabinet already stores. No account required.</p>
+            <p class="json-lesson" data-json-lesson>Your save will show here as JSON.</p>
+            <pre class="json-preview" data-json-preview></pre>
+            <label class="field">
+              <span>Save PIN (optional, 4–8 letters or digits)</span>
+              <input type="password" data-json-pin maxlength="8" autocomplete="off" spellcheck="false" placeholder="Leave blank for no PIN" />
+            </label>
+            <p class="customize-hint">A PIN keeps a casual person from opening this file in the game. Anyone who can edit the file can still change their own trophies. The file stores a hash and a salt, never the PIN.</p>
+            <div class="row-actions wrap">
+              <button type="button" data-json-download>Ship your save</button>
+            </div>
+            <label class="field">
+              <span>Load a JSON save</span>
+              <input type="file" accept="application/json,.json" data-json-file />
+            </label>
+            <label class="field" data-json-import-pin-field hidden>
+              <span>PIN for this file</span>
+              <input type="password" data-json-import-pin maxlength="8" autocomplete="off" spellcheck="false" placeholder="4–8 letters or digits" />
+            </label>
+            <div class="row-actions wrap">
+              <button type="button" class="ghost" data-json-import>Open this save</button>
+            </div>
+            <p class="share-status" data-json-status aria-live="polite"></p>
+          </section>
           <div class="row-actions wrap">
             <button type="button" class="ghost" data-account-signout hidden>Sign out</button>
             <button type="button" data-account-close>Done</button>
@@ -203,7 +229,7 @@
       </div>
     </section>
 
-    <p class="page-note">GitHub READMEs cannot run JavaScript, so this cabinet lives here. Sign in with Save to keep trophies and quest status across browsers. Without cloud save, progress stays in this browser.</p>
+    <p class="page-note">GitHub READMEs cannot run JavaScript, so this cabinet lives here. Sign in with Save to keep trophies and quest status across browsers, or ship a JSON file from that same panel. Without either, progress stays in this browser.</p>
     <p class="links">
       <a href="https://github.com/matthummel-pa">GitHub</a>
       <a href="https://matthummel.com">matthummel.com</a>
