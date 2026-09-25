@@ -13,46 +13,12 @@
     var sec = window.BranchborneSecurity;
     if (!root || !window.GitBlocks || !sec) return;
     var game = root._branchborneGame;
-    var statusEl = root.querySelector("[data-account-status]");
-    var form = root.querySelector("[data-account-form]");
-    var userEl = root.querySelector("[data-account-user]");
-    var signOutBtn = root.querySelector("[data-account-signout]");
     var panel = root.querySelector("[data-account-panel]");
     var openBtn = root.querySelector("[data-account]");
-    var emailInput = root.querySelector("[data-account-email]");
-    var passwordInput = root.querySelector("[data-account-password]");
     var config = null;
     var session = null;
     var pushTimer = 0;
     var pending = null;
-    var authWired = false;
-
-    function setStatus(text) {
-      if (statusEl) statusEl.textContent = text ? String(text).slice(0, 180) : "";
-    }
-
-    function clearPassword() {
-      if (passwordInput) passwordInput.value = "";
-    }
-
-    function safeAuthMessage(payload, password) {
-      var msg = payload && (payload.msg || payload.error_description || payload.message || payload.error);
-      var text = typeof msg === "string" ? msg : "";
-      if (!text || (password && text.indexOf(password) !== -1)) {
-        return "That did not work. Check the email and password.";
-      }
-      return text.slice(0, 180);
-    }
-
-    function showSignedIn(active) {
-      var on = Boolean(active);
-      if (form) form.hidden = on || !config;
-      if (signOutBtn) signOutBtn.hidden = !on;
-      if (userEl) {
-        userEl.hidden = !on;
-        userEl.textContent = on ? "Signed in as " + (active.email || "your account") : "";
-      }
-    }
 
     var jsonStatusEl = root.querySelector("[data-json-status]");
     var jsonLessonEl = root.querySelector("[data-json-lesson]");
@@ -282,10 +248,6 @@
 
     refreshJsonLesson();
 
-    function redirectTo() {
-      return location.origin + location.pathname;
-    }
-
     function readSession() {
       try {
         var raw = sessionStorage.getItem(SESSION_KEY);
@@ -319,7 +281,6 @@
       if (!payload || payload.role !== "authenticated" || !sec.isUuid(payload.sub)) return null;
       return {
         id: payload.sub.toLowerCase(),
-        email: typeof payload.email === "string" ? payload.email : "",
         accessToken: value.access_token,
         refreshToken: typeof value.refresh_token === "string" ? value.refresh_token : "",
         expiresAt: Number(value.expiresAt) || Date.now() + Number(value.expires_in || 3600) * 1000,
@@ -386,13 +347,11 @@
         prefer: "resolution=merge-duplicates,return=minimal",
         body: row,
       })
-        .then(function (result) {
-          if (!result.ok) setStatus(safeAuthMessage(result.payload, ""));
-          else setStatus("Synced trophies and quest status.");
+        .then(function () {
           if (pending) flushPush();
         })
         .catch(function () {
-          setStatus("Saved in this browser for this account. Cloud sync is unreachable.");
+          pending = save;
         });
     }
 
@@ -433,72 +392,24 @@
         { token: session.accessToken }
       )
         .then(function (result) {
-          if (!result.ok) {
-            setStatus("Signed in. Could not read your save.");
-            return;
-          }
+          if (!result.ok) return;
           var row = Array.isArray(result.payload) ? result.payload[0] : null;
-          if (!row) {
-            setStatus("Signed in. Your next match, trophy, or pause will sync.");
-            return;
-          }
+          if (!row) return;
           applyRemote(row);
-          setStatus("Synced trophies and quest status.");
         })
         .catch(function () {
-          setStatus("Signed in. Cloud save is unreachable, so this account's browser copy is the fallback.");
+          return null;
         });
     }
 
     function onSession(next) {
       session = next;
-      showSignedIn(session);
       if (session && typeof root._branchborneSetScope === "function") root._branchborneSetScope(session.id);
       if (session) {
-        setStatus("Signed in. Syncing trophies and quest status…");
         pull();
         return;
       }
       if (typeof root._branchborneSetScope === "function") root._branchborneSetScope(null);
-      setStatus("Sign in to sync trophies across browsers. Guest progress stays separate from accounts.");
-    }
-
-    function emailValue() {
-      var email = emailInput ? emailInput.value.trim() : "";
-      if (!sec.isValidEmail(email)) {
-        setStatus("Enter a valid email address.");
-        clearPassword();
-        return "";
-      }
-      return email;
-    }
-
-    function passwordValue() {
-      var password = passwordInput ? passwordInput.value : "";
-      var problem = sec.passwordError(password);
-      if (problem) {
-        setStatus(problem);
-        clearPassword();
-        return "";
-      }
-      return password;
-    }
-
-    function randomVerifier() {
-      var bytes = new Uint8Array(32);
-      crypto.getRandomValues(bytes);
-      var text = "";
-      bytes.forEach(function (byte) { text += String.fromCharCode(byte); });
-      return btoa(text).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-    }
-
-    function challengeFor(verifier) {
-      return crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier)).then(function (buf) {
-        var bytes = new Uint8Array(buf);
-        var text = "";
-        bytes.forEach(function (byte) { text += String.fromCharCode(byte); });
-        return btoa(text).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-      });
     }
 
     function consumeUrlSession() {
@@ -527,107 +438,8 @@
       });
     }
 
-    function wireAuth() {
-      if (authWired || !form) return;
-      authWired = true;
-      form.hidden = false;
-      form.method = "post";
-      form.action = "#account";
-      form.addEventListener("submit", function (event) {
-        event.preventDefault();
-        var email = emailValue();
-        if (!email || !config) return;
-        var password = passwordInput ? passwordInput.value : "";
-        var problem = sec.passwordError(password);
-        if (problem) {
-          setStatus(problem);
-          clearPassword();
-          return;
-        }
-        clearPassword();
-        setStatus("Signing in…");
-        authFetch("/auth/v1/token?grant_type=password", {
-          method: "POST",
-          body: { email: email, password: password },
-        }).then(function (result) {
-          clearPassword();
-          if (!result.ok) {
-            setStatus(safeAuthMessage(result.payload, password));
-            return;
-          }
-          onSession(writeSession(result.payload || {}));
-        });
-      });
-      var signup = root.querySelector("[data-account-signup]");
-      if (signup) {
-        signup.addEventListener("click", function () {
-          var email = emailValue();
-          if (!email || !config) return;
-          var password = passwordValue();
-          if (!password) return;
-          clearPassword();
-          setStatus("Creating account…");
-          authFetch("/auth/v1/signup?redirect_to=" + encodeURIComponent(redirectTo()), {
-            method: "POST",
-            body: { email: email, password: password },
-          }).then(function (result) {
-            clearPassword();
-            if (!result.ok) {
-              setStatus(safeAuthMessage(result.payload, password));
-              return;
-            }
-            var body = result.payload || {};
-            var access = body.access_token || (body.session && body.session.access_token);
-            if (access) onSession(writeSession(body.session || body));
-            else setStatus("Check your email to confirm the account, then sign in. The password was not stored.");
-          });
-        });
-      }
-      var magic = root.querySelector("[data-account-magic]");
-      if (magic) {
-        magic.addEventListener("click", function () {
-          var email = emailValue();
-          if (!email || !config) return;
-          clearPassword();
-          var verifier = randomVerifier();
-          sessionStorage.setItem(PKCE_KEY, verifier);
-          setStatus("Sending a sign-in link…");
-          challengeFor(verifier).then(function (challenge) {
-            return authFetch("/auth/v1/otp?redirect_to=" + encodeURIComponent(redirectTo()), {
-              method: "POST",
-              body: {
-                email: email,
-                create_user: true,
-                code_challenge: challenge,
-                code_challenge_method: "s256",
-              },
-            });
-          }).then(function (result) {
-            if (!result.ok) setStatus(safeAuthMessage(result.payload, ""));
-            else setStatus("Check your email for the sign-in link. It opens this cabinet.");
-          });
-        });
-      }
-      if (signOutBtn) {
-        signOutBtn.addEventListener("click", function () {
-          var token = session ? session.accessToken : "";
-          session = null;
-          pending = null;
-          sessionStorage.removeItem(SESSION_KEY);
-          if (typeof root._branchborneSetScope === "function") root._branchborneSetScope(null);
-          showSignedIn(null);
-          setStatus("Signed out. Guest progress stays separate from the account you left.");
-          clearPassword();
-          if (token && config) {
-            authFetch("/auth/v1/logout", { method: "POST", token: token, body: { scope: "global" } });
-          }
-        });
-      }
-    }
-
     function enableCloud(next) {
       config = next;
-      wireAuth();
       Promise.resolve(consumeUrlSession()).then(function (fromUrl) {
         onSession(fromUrl || readSession());
       });
@@ -642,7 +454,6 @@
       return { url: url, key: key };
     }
 
-    setStatus("Progress stays in this browser until cloud save is configured.");
     fetch("/api/public-config", { headers: { accept: "application/json" }, credentials: "omit", cache: "no-store" })
       .then(function (response) {
         if (!response.ok) throw new Error("missing");
@@ -660,15 +471,10 @@
         }).then(configFromBody);
       })
       .then(function (parsed) {
-        if (!parsed) {
-          setStatus("Cloud save is off. Trophies and quest status stay in this browser.");
-          return;
-        }
-        setStatus("Connecting cloud save…");
-        enableCloud(parsed);
+        if (parsed) enableCloud(parsed);
       })
       .catch(function () {
-        setStatus("Cloud save is off. Trophies and quest status stay in this browser.");
+        return null;
       });
   }
 
