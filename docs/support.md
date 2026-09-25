@@ -29,7 +29,7 @@ Do not set a service-role or secret key in these variables. The function returns
 
 The linked Netlify site is [gregarious-custard-70cf58](https://gregarious-custard-70cf58.netlify.app). `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` are set there. The publishable key is not in git.
 
-This release uses Supabase project `ybmseuuumwiyudwqvzuh` (`https://ybmseuuumwiyudwqvzuh.supabase.co`). Open [https://supabase.com/dashboard/project/ybmseuuumwiyudwqvzuh](https://supabase.com/dashboard/project/ybmseuuumwiyudwqvzuh) for Authentication → URL Configuration. Add `https://gregarious-custard-70cf58.netlify.app` and `http://127.0.0.1:4173` as redirect URLs so magic links land on the cabinet. This project has no `public.allowed_users` table and no `public.enforce_allowlist` trigger, so a new player email can sign up. The older project `noxzzvbmcckzmaohyahe` still has that trigger; leave it in place. Guest progress still stays in `localStorage` when nobody is signed in.
+This release uses Supabase project `ybmseuuumwiyudwqvzuh` (`https://ybmseuuumwiyudwqvzuh.supabase.co`). Open [https://supabase.com/dashboard/project/ybmseuuumwiyudwqvzuh](https://supabase.com/dashboard/project/ybmseuuumwiyudwqvzuh) for Authentication → URL Configuration. Add `https://gregarious-custard-70cf58.netlify.app` and `http://127.0.0.1:4173` as redirect URLs so magic links land on the cabinet. This project has no `public.allowed_users` table and no allowlist trigger, so a new player email can sign up. Guest progress still stays in `localStorage` when nobody is signed in.
 
 If `/api/public-config` is missing, the Save panel says cloud save is off and the quest stays in this browser.
 
