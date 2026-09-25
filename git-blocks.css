@@ -999,6 +999,10 @@ button:disabled {
   gap: 4px;
 }
 
+.account-panel [hidden] {
+  display: none !important;
+}
+
 .account-panel [data-account-signout] {
   margin-top: 8px;
 }
