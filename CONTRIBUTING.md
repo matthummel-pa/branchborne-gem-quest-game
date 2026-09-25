@@ -7,10 +7,10 @@ Issues and pull requests go to [matthummel-pa/branchborne-gem-quest-game](https:
 From the repository root:
 
 ```bash
-python3 -m http.server 4173
+python3 -m http.server 4173 --bind 0.0.0.0
 ```
 
-Open [http://127.0.0.1:4173/](http://127.0.0.1:4173/) and walk the screen you touched: pathway select, a swap, Hint, Shuffle, Trophies, and Customize.
+Open [http://127.0.0.1:4173/](http://127.0.0.1:4173/) and walk the screen you touched: pathway select, a swap, Hint, Shuffle, Trophies, Customize, and Save (the JSON card, then Ship your save).
 
 ## Where to edit
 

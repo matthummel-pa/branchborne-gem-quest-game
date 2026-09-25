@@ -25,7 +25,7 @@ docs/                              Player guide, this note, support, screenshots
 From the repository root:
 
 ```bash
-python3 -m http.server 4173
+python3 -m http.server 4173 --bind 0.0.0.0
 ```
 
 Open [http://127.0.0.1:4173/](http://127.0.0.1:4173/). Serve the root so `./git-blocks.js`, `./git-blocks.css`, and `audio/stack-sprint.ogg` resolve. The theme file is chosen in `resolveGameAsset`.
@@ -76,7 +76,7 @@ That prints the title, an 8×8 board with match length 3, a playing snapshot on 
 
 Useful exports include `createGame`, `CURRICULUM`, `PATHWAY_CLASSES`, `TROPHIES`, `LOOT_ITEMS`, `ENDGAME_CHALLENGES`, `findMatches`, `findHint`, `scoreMatch`, `goalForLevel`, and `movesForLevel`. `createGame({ random })` accepts a deterministic `random()` so a check does not depend on `Math.random`.
 
-The repository has no test runner. `node scripts/verify-progress.js` plays a seeded Frontend Mage board until the Rubber Duck trophy drops, pauses, builds a `branchborne_saves` row, restores it into a second game, and checks that a merge keeps the newer quest plus both trophy lists. The same script seals that save with a PIN, checks the file stores a SHA-256 hash and salt rather than the PIN, rejects a file that is not this save format, and refuses a wrong PIN. `sealPortableSave`, `unlockPortableSave`, `inspectPortableSave`, and `portableSaveLesson` are the JSON download helpers. The Save panel in `cloud-sync.js` calls them. Cloud sign-in is unchanged.
+The repository has no test runner and no bundler for the cabinet. `node scripts/verify-progress.js` plays a seeded Frontend Mage board until the Rubber Duck trophy drops, pauses, builds a `branchborne_saves` row, restores it into a second game, and checks that a merge keeps the newer quest plus both trophy lists. The same script seals that save with a PIN, checks the file stores a SHA-256 hash of the salt, a newline, and the PIN rather than the raw PIN, rejects a file that is not this save format, and refuses a wrong PIN. `sealPortableSave`, `unlockPortableSave`, `inspectPortableSave`, `portableSaveLesson`, and `jsonDoorCopy` are the JSON helpers. The Save cards in `index.html` call them through `cloud-sync.js`. That screen does not offer sign-in. `cloud-sync.js` still contains optional Supabase session code that is not shown on Save.
 
 ## Netlify
 
@@ -96,4 +96,4 @@ npx netlify deploy --prod --dir .
 
 The live schema is project ref `ybmseuuumwiyudwqvzuh`. `SUPABASE_URL` is `https://ybmseuuumwiyudwqvzuh.supabase.co`. Open [https://supabase.com/dashboard/project/ybmseuuumwiyudwqvzuh](https://supabase.com/dashboard/project/ybmseuuumwiyudwqvzuh) for Authentication URL configuration. The table is `public.branchborne_saves`. `supabase/migrations/20260925040125_create_branchborne_saves.sql` creates that table when it is missing. `supabase/migrations/20260924201136_extend_branchborne_saves.sql` adds quest columns and replaces the policies so `authenticated` can select, insert, update, and delete only where `(select auth.uid()) = user_id`. `anon` has no grants on that table. `supabase/migrations/20260924203000_player_rls.sql` adds a trigger that sets `user_id` from `auth.uid()`. The browser uses the publishable key. Do not ship a service-role key.
 
-This project does not have `public.branchborne_players` or an `allowed_users` allowlist trigger. Guest play still uses the browser `localStorage` fallback.
+Guest play uses the browser `localStorage` fallback and does not require a Supabase session. These migrations do not create `public.branchborne_players` and do not drop auth allowlist triggers.

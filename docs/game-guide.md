@@ -160,27 +160,28 @@ Move gems with the pointer. The arrow keys leave the selection where it is.
 
 ## What progress is saved
 
-**Save** opens a JSON prompt, not an account form. **Continue** opens **Ship your save**. **Not now** leaves the board as it is. The cabinet still writes the quest to this browser after a resolved match, a new trophy or loot drop, a pause, and when a run ends.
+**Save** opens a JSON side quest. It does not ask for an email or a password. **Continue** opens **Ship your save**. **Not now**, the scrim, or Escape closes the card and leaves the board as it is. The cabinet also writes the quest to this browser after a resolved match, a new trophy or loot drop, a pause, and when a run ends.
 
 The saved record is pathway, quest (level and title), lines of code, moves, phase (`path` or `endgame`), best LOC, trophies, loot, and the skills unlocked so far. A playing run is restored as paused so the board can be resumed.
 
-The same record is written to this browser. Guest play and a signed-in account do not share a key:
+Guest play needs no account. These are the browser keys:
 
 | Key | What it stores |
 | --- | --- |
-| `git-blocks-progress-v1:guest` | Pathway, quest, LOC, moves, phase, trophies, loot, skills while signed out |
-| `git-blocks-progress-v1:u:<user id>` | That same record for the signed-in account |
+| `git-blocks-progress-v1:guest` | Pathway, quest, LOC, moves, phase, trophies, loot, and skills |
 | `git-blocks-high-score:guest` | Best LOC on this browser |
 | `git-blocks-prefs-v2:guest` | Look, music, volume, and graphics |
 
-If cloud save is off, play continues from the guest key. Signing in loads that account's cloud row and does not import the guest save. Best LOC is kept per scope.
+If a session is already present, the same records use `:u:<user-id>` instead of `:guest`. The Save screen does not start that session, and it does not copy the guest save into an account. Best LOC stays on the key for the scope that wrote it.
 
-A shared link can also reapply Look and Music from its `#gb=` hash. See [Support](support.md) to clear local data or fix a sign-in that never returns.
+A shared link can also reapply Look and Music from its `#gb=` hash. See [Support](support.md) to clear local data or open a JSON save.
 
 ### Ship a JSON file
 
-**Save** first opens a short JSON prompt. **Continue** opens the save panel. **Not now** closes the prompt and leaves the board as it is. **Ship your save** downloads `branchborne-save.json`. The panel still teaches JSON against a preview of this run, not a sample file. The file is one object. `pathwayId` is a key. The pathway text, such as `"frontend"`, is a string. `score` is a number — your lines of code. `trophies` is an array. When the trophy list is long, the preview shows the first trophies and the file keeps the rest.
+**Save** opens **Pack this quest**. Before a pathway is chosen, that card shows a labeled sample, not your quest. After a pathway is chosen, the line is this run. **Continue** opens **Ship your save**. **Not now** closes the prompt and leaves the board as it is.
 
-**Open this save** reads a file back. The cabinet rejects JSON that is not this save format. After a good load, the board updates and a line confirms what came back, for example “Restored pathway, 3 trophies, 1200 lines of code.” Trophy names on the board come from the cabinet catalog.
+**Ship your save** downloads `branchborne-save.json`. The card teaches JSON against a preview of this run. The file is one object. `pathwayId` is a key. The pathway text, such as `"frontend"`, is a string. `score` is a number — your lines of code. `trophies` is an array. When the trophy list is long, the preview shows the first trophies and the file keeps the rest.
 
-The PIN field takes 4–8 letters or digits, or you can leave it blank. A blank PIN still downloads and imports. A set PIN is required again when that file is opened here. The file holds a SHA-256 hash and a salt, not the PIN. That stops a casual person from opening the file in the game. Anyone who can edit the file can still change their own trophies. It is not server-side security.
+**Open this save** reads a file back. A file that is not this cabinet's progress object says "That file is not a Branchborne save." After a good load, the board updates and a line confirms what came back, for example “Restored pathway, 3 trophies, 1200 lines of code.” Trophy names on the board come from the cabinet catalog.
+
+The PIN field takes 4–8 letters or digits, or you can leave it blank. A blank PIN still downloads and imports. A set PIN is required again when that file is opened here. The file holds a SHA-256 hash of the salt, a newline, and the PIN. The raw PIN is not written into the file, `localStorage`, or the log. That stops a casual person from opening the file in the game. Anyone who can edit the file can still change their own trophies. It is not server-side security.

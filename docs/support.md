@@ -2,7 +2,7 @@
 
 ## Browsers
 
-Use a current Chrome, Firefox, Safari, or Edge. The cabinet needs canvas, pointer events, `localStorage`, and either Web Audio or HTML audio. JavaScript has to be enabled. Serve the files over HTTP from the repository root (see [Play locally](../README.md#play-locally)).
+Use a current Chrome, Firefox, Safari, or Edge. The cabinet needs canvas, pointer events, `localStorage`, and either Web Audio or HTML audio. JavaScript has to be enabled. Serve the files over HTTP from the repository root (see [Play it](../README.md#play-it)).
 
 ## Sound and autoplay
 
@@ -13,11 +13,13 @@ Music starts when you pick a pathway, which is a click, so the browser has a use
 - Effects are synthesized in an `AudioContext` (select, swap, match, cascade, start). Use the preview buttons on the Music tab to hear them.
 - A quiet browser is often a blocked autoplay or a missing `audio/` file because the page was not served from the repo root. The board still runs.
 
-## Cloud save
+## Save and guest play
 
-The Save screen does not ask for an email or a password. Ship a JSON file from that panel, or keep the guest quest in this browser. The board runs either way.
+The Save screen does not ask for an email or a password. **Save** opens the JSON side quest. **Continue** opens **Ship your save**. Guest play needs no account, and the board runs without Supabase.
 
-The browser asks `GET /api/public-config` first, then `./supabase-public.json`. Either source must include a project URL and a publishable key. Copy `supabase-public.example.json` to `supabase-public.json` for a local static server. That file is gitignored. On Netlify, set these site environment variables and leave the values out of git:
+`cloud-sync.js` can still attach a Supabase session that is already in the page URL. That path is not shown on Save, and it does not copy the guest save into an account. This repository's migrations do not drop auth allowlist triggers.
+
+The browser asks `GET /api/public-config` first, then `./supabase-public.json`. Either source, when present, must include a project URL and a publishable key. Copy `supabase-public.example.json` to `supabase-public.json` for a local static server. That file is gitignored. On Netlify, set these site environment variables and leave the values out of git:
 
 | Variable | Purpose |
 | --- | --- |
@@ -29,13 +31,11 @@ Do not set a service-role or secret key in these variables. The function returns
 
 The linked Netlify site is [gregarious-custard-70cf58](https://gregarious-custard-70cf58.netlify.app). `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` are set there. The publishable key is not in git.
 
-This release uses Supabase project `ybmseuuumwiyudwqvzuh` (`https://ybmseuuumwiyudwqvzuh.supabase.co`). Open [https://supabase.com/dashboard/project/ybmseuuumwiyudwqvzuh](https://supabase.com/dashboard/project/ybmseuuumwiyudwqvzuh) for Authentication → URL Configuration. Add `https://gregarious-custard-70cf58.netlify.app` and `http://127.0.0.1:4173` as redirect URLs so magic links land on the cabinet. This project has no `public.allowed_users` table and no allowlist trigger, so a new player email can sign up. Guest progress still stays in `localStorage` when nobody is signed in.
-
-If `/api/public-config` is missing, the Save panel says cloud save is off and the quest stays in this browser.
+This release uses Supabase project `ybmseuuumwiyudwqvzuh` (`https://ybmseuuumwiyudwqvzuh.supabase.co`). The linked Netlify site can publish the public URL and publishable key through `/api/public-config`. If that route or `supabase-public.json` is missing, guest play continues and **Ship your save** still downloads the JSON file. The Save card does not show a cloud-off message, and it does not ask a player to create an account.
 
 ## JSON save file
 
-**Save** shows a JSON prompt before the form. **Continue** opens **Ship your save**, which downloads `branchborne-save.json` in this browser. **Not now** dismisses the prompt. It does not need Supabase. The panel’s JSON lesson and preview are your current quest. **Open this save** puts a file of that shape back on the board.
+**Save** opens **Pack this quest**. **Continue** opens **Ship your save**, which downloads `branchborne-save.json` in this browser. **Not now**, the scrim, or Escape dismisses the card. It does not need Supabase. Before a pathway is chosen, the first card shows a labeled sample. After a pathway is chosen, the lesson and preview are your current quest. **Open this save** puts a file of that shape back on the board.
 
 - Leave the PIN blank for a file anyone can open in the game.
 - A PIN is 4–8 letters or digits. The file keeps a SHA-256 hash and a salt. The cabinet does not store the PIN.
@@ -45,7 +45,7 @@ If `/api/public-config` is missing, the Save panel says cloud save is off and th
 
 ## Reset local progress
 
-Quest progress, trophies, and loot are stored for this origin, along with best LOC and look/music. Guest play and each signed-in account use different keys, so one player does not read another's save on a shared browser.
+Quest progress, trophies, and loot are stored for this origin, along with best LOC and look/music. Guest play uses the `:guest` keys. A session that is already present uses `:u:<user-id>`, so those two saves do not share a key.
 
 | Key | Contents |
 | --- | --- |
@@ -56,7 +56,7 @@ Quest progress, trophies, and loot are stored for this origin, along with best L
 
 Older unscoped keys (`git-blocks-progress-v1`, `git-blocks-high-score`, `git-blocks-prefs-v2`) are read only for the guest, and new writes do not go back to them.
 
-To clear them, open the developer tools for `http://127.0.0.1:4173/`, remove the keys for the scope you want, and reload. Clearing site data for that origin does the same thing. That does not delete the Supabase row. Sign in and play, or delete your own `branchborne_saves` row, to change the cloud copy. Signing in does not import the guest save.
+To clear them, open the developer tools for `http://127.0.0.1:4173/`, remove the keys for the scope you want, and reload. Clearing site data for that origin does the same thing. That does not delete a Supabase row. The Save screen does not sign you in. If a session is already present, playing updates that account's row and does not import the guest save. Otherwise, change a cloud row from the Supabase dashboard.
 
 A share link may end with `#gb=` and a payload that reapplies Look and Music. Strip the hash and reload when you want the default navy cabinet instead of a shared backdrop.
 
